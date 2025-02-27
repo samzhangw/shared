@@ -41,6 +41,18 @@ function doPost(e) {
     }
     
     if (action === 'addEntry' && entry) {
+      // 檢查驗證碼是否存在
+      if (!entry.captchaResponse) {
+        return sendResponse(false, '驗證失敗：請完成人機驗證');
+      }
+      
+      // 驗證 hCaptcha 回應
+      // 注意：在實際生產環境中，您需要在這裡調用 hCaptcha 驗證 API 進行後端驗證
+      // 為了示範，這裡僅檢查是否存在 captchaResponse
+      
+      // 移除驗證碼數據後再儲存
+      delete entry.captchaResponse;
+      
       // 新增項目
       const result = addEntry(entry);
       return sendResponse(true, '成功新增資料', { entry: result });
@@ -112,7 +124,7 @@ function addEntry(entry) {
 }
 
 // 取得或建立資料工作表
-function getDataSheet() {
+function getDatasheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('ScoreEntries');
   

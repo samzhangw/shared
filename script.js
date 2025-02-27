@@ -42,6 +42,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // 先阻止默認提交
         e.preventDefault();
         
+        // 檢查 hCaptcha 驗證
+        const hCaptchaResponse = hcaptcha.getResponse();
+        if (!hCaptchaResponse) {
+            // 顯示驗證錯誤
+            document.getElementById('captcha-error').style.display = 'block';
+            return;
+        } else {
+            // 隱藏錯誤提示（如果先前有顯示）
+            document.getElementById('captcha-error').style.display = 'none';
+        }
+        
         // 添加提交動畫
         const submitButton = this.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
@@ -75,7 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 composition: document.getElementById('composition').value || '0',
                 total: document.getElementById('total').value || calculateApproximateScore(),
                 totalPoints: document.getElementById('totalPoints').value || calculateTotalPoints(),
-                comment: document.getElementById('comment').value
+                comment: document.getElementById('comment').value,
+                captchaResponse: hCaptchaResponse // 加入驗證回應
             };
             
             // 發送到後端 API
@@ -103,6 +115,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 重置表單
                     document.getElementById('score-form').reset();
+                    
+                    // 重置 hCaptcha
+                    hcaptcha.reset();
                     
                     // 提交成功特效
                     showApiMessage('success', '感謝您的分享！您的錄取資訊已成功提交。');

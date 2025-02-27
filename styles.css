@@ -1223,3 +1223,24 @@ footer {
     font-size: 0.8rem;
   }
 }
+
+.h-captcha {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  transition: all 0.3s;
+}
+
+.h-captcha:hover {
+  transform: scale(1.02);
+}
+
+#captcha-error {
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
