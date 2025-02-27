@@ -161,6 +161,13 @@ body::before {
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
 }
 
+.school-tag.active {
+  background: linear-gradient(120deg, #0d6efd, #6610f2);
+  color: white;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+}
+
 .score-badge {
   font-size: 0.85rem;
   padding: 6px 12px;
@@ -788,12 +795,15 @@ footer {
 
 @keyframes tooltip-pulse {
   0% {
+    transform: scale(1);
     box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4);
   }
   70% {
+    transform: scale(1);
     box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
   }
   100% {
+    transform: scale(1);
     box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
   }
 }
@@ -1057,6 +1067,7 @@ footer {
 }
 
 .region-btn {
+  overflow: hidden;
   flex: 0 0 auto;
   margin-right: 8px;
   padding: 8px 14px;

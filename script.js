@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setupRegionFilter();
             setupAdvancedFilters(); // 設置進階篩選功能
             populateDepartmentGroups();
+            setupSchoolTags(); // 設置學校快速選擇功能
         });
     
     // 表單提交處理
@@ -1455,5 +1456,31 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 初始檢查
         checkIfInView();
+    }
+    
+    // 設置學校快速選擇功能
+    function setupSchoolTags() {
+        const schoolTags = document.querySelectorAll('.school-tag');
+        
+        schoolTags.forEach(tag => {
+            tag.addEventListener('click', function() {
+                // 獲取學校名稱
+                const schoolName = this.textContent.trim();
+                
+                // 設置搜尋框的值
+                const searchInput = document.getElementById('search-input');
+                searchInput.value = schoolName;
+                
+                // 觸發搜尋
+                applyFilters();
+                
+                // 視覺反饋
+                schoolTags.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 平滑滾動到結果區域
+                document.getElementById('results-section').scrollIntoView({behavior: 'smooth'});
+            });
+        });
     }
 });
