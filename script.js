@@ -1420,9 +1420,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化Bootstrap工具提示
     function initializeTooltips() {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover focus', // 滑鼠懸停和獲得焦點時顯示
+            delay: { show: 300, hide: 100 } // 顯示和隱藏的延遲時間
+        }));
+        
+        // 為表單欄位添加焦點事件 - 獲得焦點時自動顯示提示
+        document.querySelectorAll('form input, form select, form textarea').forEach(element => {
+            element.addEventListener('focus', function() {
+                const tooltip = bootstrap.Tooltip.getInstance(this);
+                if (tooltip) {
+                    tooltip.show();
+                }
+            });
+            
+            // 失去焦點時隱藏提示
+            element.addEventListener('blur', function() {
+                const tooltip = bootstrap.Tooltip.getInstance(this);
+                if (tooltip) {
+                    setTimeout(() => tooltip.hide(), 1000); // 延遲隱藏以便用戶閱讀
+                }
+            });
         });
         
         // 為分數徽章添加工具提示

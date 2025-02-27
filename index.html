@@ -68,20 +68,20 @@
             <h5 class="fw-bold text-primary mb-0"><i class="bi bi-journal-check me-2"></i>選單</h5>
         </div>
         <div class="pt-2">
-            <a href="https://sites.google.com/view/tyctw/" class="menu-item active">
+            <a href="#" class="menu-item active">
                 <i class="bi bi-house-door"></i>首頁
             </a>
-            <a href="https://tyctw.github.io/" class="menu-item">
-                <i class="bi bi-share"></i>落點分析
+            <a href="#share-section" class="menu-item">
+                <i class="bi bi-share"></i>分享資訊
             </a>
-            <a href="https://tyctw.github.io/report_form" class="menu-item">
-                <i class="bi bi-search"></i>異常回報
+            <a href="#search-section" class="menu-item">
+                <i class="bi bi-search"></i>搜尋資訊
             </a>
             <a href="#results-section" class="menu-item">
                 <i class="bi bi-list-stars"></i>錄取資料
             </a>
-            <a href="https://tyctw.github.io/Navigation/n" class="menu-item">
-                <i class="bi bi-bar-chart"></i>更多資訊
+            <a href="#stats-section" class="menu-item">
+                <i class="bi bi-bar-chart"></i>統計資訊
             </a>
             <div class="border-top my-3"></div>
             <a href="javascript:void(0)" class="btn btn-primary menu-btn help-btn">
@@ -116,7 +116,7 @@
                         <form id="score-form">
                             <div class="mb-3">
                                 <label for="year" class="form-label"><i class="bi bi-calendar-event me-1"></i>會考年份</label>
-                                <select class="form-select" id="year" required>
+                                <select class="form-select" id="year" required data-bs-toggle="tooltip" data-bs-placement="right" title="請選擇您參加會考的年份">
                                     <option value="" selected disabled>請選擇年份</option>
                                     <option value="114">114年 (2025)</option>
                                     <option value="113">113年 (2024)</option>
@@ -127,17 +127,17 @@
                             </div>
                             <div class="mb-3">
                                 <label for="school" class="form-label"><i class="bi bi-building me-1"></i>錄取學校</label>
-                                <input type="text" class="form-control" id="school" placeholder="例：建國中學" required>
+                                <input type="text" class="form-control" id="school" placeholder="例：建國中學" required data-bs-toggle="tooltip" data-bs-placement="right" title="請輸入您錄取的學校全名">
                             </div>
                             <div class="mb-3">
                                 <label for="department" class="form-label"><i class="bi bi-book me-1"></i>科系/班別</label>
-                                <select class="form-select" id="department">
+                                <select class="form-select" id="department" data-bs-toggle="tooltip" data-bs-placement="right" title="請選擇您錄取的科系或班別，普通高中可選擇「普通班」">
                                     <option value="" selected disabled>請選擇科系或班別</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label for="region" class="form-label"><i class="bi bi-geo-alt me-1"></i>所屬區域</label>
-                                <select class="form-select" id="region" required>
+                                <select class="form-select" id="region" required data-bs-toggle="tooltip" data-bs-placement="right" title="請選擇學校所在的免試入學區域">
                                     <option value="" selected disabled>請選擇區域</option>
                                     <option value="基北區">基北區</option>
                                     <option value="桃連區">桃連區</option>
@@ -160,7 +160,7 @@
                                 <div class="row g-2">
                                     <div class="col">
                                         <label for="chinese" class="form-label">國文</label>
-                                        <select class="form-select" id="chinese" required>
+                                        <select class="form-select" id="chinese" required data-bs-toggle="tooltip" data-bs-placement="top" title="選擇您國文科的會考成績">
                                             <option value="" selected disabled>請選擇</option>
                                             <option value="A++">A++</option>
                                             <option value="A+">A+</option>
@@ -173,7 +173,7 @@
                                     </div>
                                     <div class="col">
                                         <label for="english" class="form-label">英文</label>
-                                        <select class="form-select" id="english" required>
+                                        <select class="form-select" id="english" required data-bs-toggle="tooltip" data-bs-placement="top" title="選擇您英文科的會考成績">
                                             <option value="" selected disabled>請選擇</option>
                                             <option value="A++">A++</option>
                                             <option value="A+">A+</option>
@@ -186,7 +186,7 @@
                                     </div>
                                     <div class="col">
                                         <label for="math" class="form-label">數學</label>
-                                        <select class="form-select" id="math" required>
+                                        <select class="form-select" id="math" required data-bs-toggle="tooltip" data-bs-placement="top" title="選擇您數學科的會考成績">
                                             <option value="" selected disabled>請選擇</option>
                                             <option value="A++">A++</option>
                                             <option value="A+">A+</option>
@@ -201,7 +201,7 @@
                                 <div class="row g-2 mt-2">
                                     <div class="col">
                                         <label for="science" class="form-label">自然</label>
-                                        <select class="form-select" id="science" required>
+                                        <select class="form-select" id="science" required data-bs-toggle="tooltip" data-bs-placement="bottom" title="選擇您自然科的會考成績">
                                             <option value="" selected disabled>請選擇</option>
                                             <option value="A++">A++</option>
                                             <option value="A+">A+</option>
@@ -214,7 +214,7 @@
                                     </div>
                                     <div class="col">
                                         <label for="social" class="form-label">社會</label>
-                                        <select class="form-select" id="social" required>
+                                        <select class="form-select" id="social" required data-bs-toggle="tooltip" data-bs-placement="bottom" title="選擇您社會科的會考成績">
                                             <option value="" selected disabled>請選擇</option>
                                             <option value="A++">A++</option>
                                             <option value="A+">A+</option>
@@ -227,7 +227,7 @@
                                     </div>
                                     <div class="col">
                                         <label for="composition" class="form-label">作文</label>
-                                        <select class="form-select" id="composition" required>
+                                        <select class="form-select" id="composition" required data-bs-toggle="tooltip" data-bs-placement="bottom" title="選擇您國文寫作測驗的級分">
                                             <option value="" selected disabled>級分</option>
                                             <option value="0">0級</option>
                                             <option value="1">1級</option>
@@ -243,19 +243,19 @@
                             <div class="row g-2 mb-3">
                                 <div class="col-md-6">
                                     <label for="total" class="form-label"><i class="bi bi-calculator me-1"></i>總積分</label>
-                                    <input type="number" class="form-control" id="total" min="0" max="100" step="0.01" placeholder="例：97.5">
+                                    <input type="number" class="form-control" id="total" min="0" max="100" step="0.01" placeholder="例：97.5" data-bs-toggle="tooltip" data-bs-placement="top" title="依各校計算方式得出的總積分，如不確定可留空由系統估算">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="totalPoints" class="form-label"><i class="bi bi-award me-1"></i>總積點</label>
-                                    <input type="number" class="form-control" id="totalPoints" min="0" max="35" step="1" placeholder="例：28">
+                                    <input type="number" class="form-control" id="totalPoints" min="0" max="35" step="1" placeholder="例：28" data-bs-toggle="tooltip" data-bs-placement="top" title="五科成績換算的總積點，如不確定可留空由系統估算">
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label for="comment" class="form-label"><i class="bi bi-chat-square-text me-1"></i>附加說明 (選填)</label>
-                                <textarea class="form-control" id="comment" rows="2" placeholder="例：加分條件、特殊管道錄取、心得..."></textarea>
+                                <textarea class="form-control" id="comment" rows="2" placeholder="例：加分條件、特殊管道錄取、心得..." data-bs-toggle="tooltip" data-bs-placement="top" title="可填寫其他補充說明，如特殊管道錄取、多元學習表現加分等"></textarea>
                             </div>
                             <div class="mb-3">
-                                <div class="h-captcha" data-sitekey="87f06f80-1ea2-4a22-95e2-93f08616a8e4" data-theme="light"></div>
+                                <div class="h-captcha" data-sitekey="10000000-ffff-ffff-ffff-000000000001" data-theme="light"></div>
                                 <div id="captcha-error" class="text-danger small mt-1" style="display: none;">
                                     <i class="bi bi-exclamation-triangle-fill me-1"></i>請完成人機驗證
                                 </div>
