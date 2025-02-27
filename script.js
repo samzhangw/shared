@@ -6,6 +6,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let entries = [];
     let currentSort = 'newest';
     
+    // 過濾器狀態
+    let activeFilters = {
+        region: 'all',
+        scoreMin: null,
+        scoreMax: null,
+        year: null,
+        subjects: {},
+        composition: null
+    };
+    
     // 初始化頁面
     showLoading();
     fetchEntries()
@@ -22,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setupSidebarMenu(); // 初始化側邊欄選單
             setupHelpModal(); // 初始化使用說明模態框
             setupRegionFilter();
+            setupAdvancedFilters(); // 設置進階篩選功能
             populateDepartmentGroups();
         });
     
@@ -969,35 +980,229 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 button.classList.add('active');
                 
+                // 更新過濾器狀態
+                activeFilters.region = region;
+                
                 // 根據選擇的區域過濾資料
-                filterByRegion(region);
+                applyFilters();
             }
         });
     }
     
-    // 根據區域過濾資料
-    function filterByRegion(region) {
+    // 設置進階篩選功能
+    function setupAdvancedFilters() {
+        // 設置年份過濾
+        const yearFilterContainer = document.getElementById('year-filter');
+        if (yearFilterContainer) {
+            yearFilterContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('filter-chip') || e.target.parentElement.classList.contains('filter-chip')) {
+                    const chip = e.target.classList.contains('filter-chip') ? e.target : e.target.parentElement;
+                    const year = chip.getAttribute('data-year');
+                    
+                    // 切換狀態
+                    if (chip.classList.contains('active')) {
+                        chip.classList.remove('active');
+                        activeFilters.year = null;
+                    } else {
+                        document.querySelectorAll('#year-filter .filter-chip').forEach(c => {
+                            c.classList.remove('active');
+                        });
+                        chip.classList.add('active');
+                        activeFilters.year = year;
+                    }
+                    
+                    applyFilters();
+                }
+            });
+        }
+        
+        // 設置積分範圍過濾
+        const scoreFilterContainer = document.getElementById('score-range-filter');
+        if (scoreFilterContainer) {
+            scoreFilterContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('score-filter-btn') || e.target.parentElement.classList.contains('score-filter-btn')) {
+                    const btn = e.target.classList.contains('score-filter-btn') ? e.target : e.target.parentElement;
+                    const min = btn.getAttribute('data-min');
+                    const max = btn.getAttribute('data-max');
+                    
+                    // 切換狀態
+                    if (btn.classList.contains('active')) {
+                        btn.classList.remove('active');
+                        activeFilters.scoreMin = null;
+                        activeFilters.scoreMax = null;
+                    } else {
+                        document.querySelectorAll('#score-range-filter .score-filter-btn').forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        activeFilters.scoreMin = min;
+                        activeFilters.scoreMax = max;
+                    }
+                    
+                    applyFilters();
+                }
+            });
+        }
+        
+        // 設置科目成績過濾
+        const subjectFilters = document.querySelectorAll('.subject-filter');
+        subjectFilters.forEach(container => {
+            const subject = container.getAttribute('data-subject');
+            
+            container.addEventListener('click', function(e) {
+                if (e.target.classList.contains('filter-chip') || e.target.parentElement.classList.contains('filter-chip')) {
+                    const chip = e.target.classList.contains('filter-chip') ? e.target : e.target.parentElement;
+                    const grade = chip.getAttribute('data-grade');
+                    
+                    // 切換狀態
+                    if (chip.classList.contains('active')) {
+                        chip.classList.remove('active');
+                        delete activeFilters.subjects[subject];
+                    } else {
+                        container.querySelectorAll('.filter-chip').forEach(c => {
+                            c.classList.remove('active');
+                        });
+                        chip.classList.add('active');
+                        activeFilters.subjects[subject] = grade;
+                    }
+                    
+                    applyFilters();
+                }
+            });
+        });
+        
+        // 設置作文級分過濾
+        const compositionFilter = document.getElementById('composition-filter');
+        if (compositionFilter) {
+            compositionFilter.addEventListener('click', function(e) {
+                if (e.target.classList.contains('filter-chip') || e.target.parentElement.classList.contains('filter-chip')) {
+                    const chip = e.target.classList.contains('filter-chip') ? e.target : e.target.parentElement;
+                    const level = chip.getAttribute('data-level');
+                    
+                    // 切換狀態
+                    if (chip.classList.contains('active')) {
+                        chip.classList.remove('active');
+                        activeFilters.composition = null;
+                    } else {
+                        compositionFilter.querySelectorAll('.filter-chip').forEach(c => {
+                            c.classList.remove('active');
+                        });
+                        chip.classList.add('active');
+                        activeFilters.composition = level;
+                    }
+                    
+                    applyFilters();
+                }
+            });
+        }
+        
+        // 清除所有過濾條件
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', function() {
+                // 重置過濾器狀態
+                activeFilters = {
+                    region: 'all',
+                    scoreMin: null,
+                    scoreMax: null,
+                    year: null,
+                    subjects: {},
+                    composition: null
+                };
+                
+                // 重置UI狀態
+                document.querySelectorAll('.filter-chip, .score-filter-btn').forEach(el => {
+                    el.classList.remove('active');
+                });
+                
+                // 重置區域過濾器
+                document.querySelectorAll('.region-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById('region-all').classList.add('active');
+                
+                // 應用過濾器（實際上是重置為所有數據）
+                applyFilters();
+            });
+        }
+    }
+    
+    // 應用所有過濾條件
+    function applyFilters() {
         // 獲取搜尋關鍵字
         const searchKeyword = document.getElementById('search-input').value.trim().toLowerCase();
         
-        // 如果選擇的是"全部"
-        if (region === 'all') {
-            displayEntries(searchKeyword);
-            return;
-        }
-        
-        // 根據區域過濾資料
+        // 過濾數據
         let filteredEntries = entries.filter(entry => {
-            // 檢查學校所屬區域
-            return entry.region === region && 
-                  (searchKeyword === '' || 
-                   entry.school.toLowerCase().includes(searchKeyword) || 
-                   entry.department.toLowerCase().includes(searchKeyword));
+            // 搜尋關鍵字過濾
+            const matchesKeyword = searchKeyword === '' || 
+                                entry.school.toLowerCase().includes(searchKeyword) || 
+                                entry.department.toLowerCase().includes(searchKeyword);
+            
+            // 區域過濾
+            const matchesRegion = activeFilters.region === 'all' || entry.region === activeFilters.region;
+            
+            // 年份過濾
+            const matchesYear = activeFilters.year === null || entry.year === activeFilters.year;
+            
+            // 積分範圍過濾
+            const matchesScoreRange = (activeFilters.scoreMin === null || activeFilters.scoreMax === null) || 
+                                   (parseFloat(entry.total) >= parseFloat(activeFilters.scoreMin) && 
+                                    parseFloat(entry.total) <= parseFloat(activeFilters.scoreMax));
+            
+            // 科目成績過濾
+            let matchesSubjects = true;
+            for (const subject in activeFilters.subjects) {
+                if (entry.scores[subject] !== activeFilters.subjects[subject]) {
+                    matchesSubjects = false;
+                    break;
+                }
+            }
+            
+            // 作文級分過濾
+            const matchesComposition = activeFilters.composition === null || 
+                                    entry.composition === activeFilters.composition;
+            
+            return matchesKeyword && matchesRegion && matchesYear && matchesScoreRange && 
+                   matchesSubjects && matchesComposition;
         });
         
-        // 顯示過濾後的資料
+        // 顯示過濾後的結果
         displayFilteredEntries(filteredEntries);
+        
+        // 更新過濾結果計數
+        updateFilterResultCount(filteredEntries.length);
     }
+    
+    // 更新過濾結果計數
+    function updateFilterResultCount(count) {
+        const resultCountEl = document.getElementById('filter-result-count');
+        if (resultCountEl) {
+            resultCountEl.textContent = count;
+            
+            // 視覺反饋 - 如果結果變少，突出顯示
+            if (count < entries.length) {
+                resultCountEl.classList.add('text-primary', 'fw-bold');
+            } else {
+                resultCountEl.classList.remove('text-primary', 'fw-bold');
+            }
+        }
+    }
+    
+    // 更改搜尋表單提交事件 - 整合進過濾系統
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        applyFilters();
+    });
+    
+    // 監聽搜尋輸入框變化 - 實時過濾
+    document.getElementById('search-input').addEventListener('input', function() {
+        // 輕微延遲以減少高頻率過濾
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            applyFilters();
+        }, 300);
+    });
     
     // 顯示過濾後的資料
     function displayFilteredEntries(filteredEntries) {
@@ -1147,108 +1352,108 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-});
-
-// 填入科系群組資料
-function populateDepartmentGroups() {
-    const departmentSelect = document.getElementById('department');
-    if (!departmentSelect) return;
     
-    // 清空現有選項，保留預設提示選項
-    const defaultOption = departmentSelect.querySelector('option[value=""]');
-    departmentSelect.innerHTML = '';
-    if (defaultOption) {
-        departmentSelect.appendChild(defaultOption);
-    }
-    
-    // 定義科系群組和科系
-    const departmentGroups = {
-        "普通科": ["普通班"],
-        "機械群": ["機械科", "鑄造科", "板金科", "機械木模科", "配管科", "模具科", "機電科", "製圖科", "生物產業機電科", "電腦機械製圖科"],
-        "動力機械群": ["汽車科", "重機科", "飛機修護科", "動力機械科", "農業機械科", "軌道車輛科"],
-        "電機與電子群": ["資訊科", "電子科", "控制科", "電機科", "冷凍空調科", "航空電子科", "電機空調科"],
-        "化工群": ["化工科", "紡織科", "染整科"],
-        "土木與建築群": ["建築科", "土木科", "消防工程科", "空間測繪科"],
-        "商業與管理群": ["商業經營科", "國際貿易科", "會計事務科", "資料處理科", "不動產事務科", "電子商務科", "流通管理科", "農產行銷科", "航運管理科"],
-        "外語群": ["應用外語科（英文組）", "應用外語科（日文組）"],
-        "設計群": ["家具木工科", "美工科", "陶瓷工程科", "室內空間設計科", "圖文傳播科", "金屬工藝科", "家具設計科", "廣告設計科", "多媒體設計科", "多媒體應用科", "室內設計科"],
-        "農業群": ["農場經營科", "園藝科", "森林科", "野生動物保育科", "造園科", "畜產保健科"],
-        "食品群": ["食品加工科", "食品科", "水產食品科", "烘焙科"],
-        "家政群": ["家政科", "服裝科", "幼兒保育科", "美容科", "時尚模特兒科", "流行服飾科", "時尚造型科", "照顧服務科"],
-        "餐旅群": ["觀光事業科", "餐飲管理科"],
-        "水產群": ["漁業科", "水產養殖科"],
-        "海事群": ["輪機科", "航海科"],
-        "藝術群": ["戲劇科", "音樂科", "舞蹈科", "美術科", "影劇科", "西樂科", "國樂科", "電影電視科", "表演藝術科", "多媒體動畫科", "時尚工藝科"]
-    };
-    
-    // 建立群組下拉選單
-    for (const group in departmentGroups) {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = group;
+    // 填入科系群組資料
+    function populateDepartmentGroups() {
+        const departmentSelect = document.getElementById('department');
+        if (!departmentSelect) return;
         
-        // 添加該群組的科系選項
-        departmentGroups[group].forEach(dept => {
-            const option = document.createElement('option');
-            option.value = dept;
-            option.textContent = dept;
-            optgroup.appendChild(option);
-        });
+        // 清空現有選項，保留預設提示選項
+        const defaultOption = departmentSelect.querySelector('option[value=""]');
+        departmentSelect.innerHTML = '';
+        if (defaultOption) {
+            departmentSelect.appendChild(defaultOption);
+        }
         
-        departmentSelect.appendChild(optgroup);
-    }
-}
-
-// 初始化Bootstrap工具提示
-function initializeTooltips() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // 為分數徽章添加工具提示
-    document.querySelectorAll('.score-badge, .composition-badge').forEach(badge => {
-        new bootstrap.Tooltip(badge);
-    });
-}
-
-// 設置隨機背景圖案顏色
-function setRandomBackgroundPattern() {
-    const colors = [
-        'rgba(13, 110, 253, 0.03)', // 藍色
-        'rgba(25, 135, 84, 0.03)',  // 綠色
-        'rgba(255, 193, 7, 0.03)',  // 黃色
-        'rgba(102, 16, 242, 0.03)'  // 紫色
-    ];
-    
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    document.documentElement.style.setProperty('--pattern-color', randomColor);
-}
-
-// 添加滾動動畫效果
-function initializeScrollAnimations() {
-    const animatedElements = document.querySelectorAll('.card, .school-tag, .btn, header h1, header p');
-    
-    // 檢查元素是否在視口中
-    function checkIfInView() {
-        const windowHeight = window.innerHeight;
-        const windowTopPosition = window.scrollY;
-        const windowBottomPosition = windowTopPosition + windowHeight;
+        // 定義科系群組和科系
+        const departmentGroups = {
+            "普通科": ["普通班"],
+            "機械群": ["機械科", "鑄造科", "板金科", "機械木模科", "配管科", "模具科", "機電科", "製圖科", "生物產業機電科", "電腦機械製圖科"],
+            "動力機械群": ["汽車科", "重機科", "飛機修護科", "動力機械科", "農業機械科", "軌道車輛科"],
+            "電機與電子群": ["資訊科", "電子科", "控制科", "電機科", "冷凍空調科", "航空電子科", "電機空調科"],
+            "化工群": ["化工科", "紡織科", "染整科"],
+            "土木與建築群": ["建築科", "土木科", "消防工程科", "空間測繪科"],
+            "商業與管理群": ["商業經營科", "國際貿易科", "會計事務科", "資料處理科", "不動產事務科", "電子商務科", "流通管理科", "農產行銷科", "航運管理科"],
+            "外語群": ["應用外語科（英文組）", "應用外語科（日文組）"],
+            "設計群": ["家具木工科", "美工科", "陶瓷工程科", "室內空間設計科", "圖文傳播科", "金屬工藝科", "家具設計科", "廣告設計科", "多媒體設計科", "多媒體應用科", "室內設計科"],
+            "農業群": ["農場經營科", "園藝科", "森林科", "野生動物保育科", "造園科", "畜產保健科"],
+            "食品群": ["食品加工科", "食品科", "水產食品科", "烘焙科"],
+            "家政群": ["家政科", "服裝科", "幼兒保育科", "美容科", "時尚模特兒科", "流行服飾科", "時尚造型科", "照顧服務科"],
+            "餐旅群": ["觀光事業科", "餐飲管理科"],
+            "水產群": ["漁業科", "水產養殖科"],
+            "海事群": ["輪機科", "航海科"],
+            "藝術群": ["戲劇科", "音樂科", "舞蹈科", "美術科", "影劇科", "西樂科", "國樂科", "電影電視科", "表演藝術科", "多媒體動畫科", "時尚工藝科"]
+        };
         
-        animatedElements.forEach(element => {
-            const elementHeight = element.offsetHeight;
-            const elementTopPosition = element.getBoundingClientRect().top + windowTopPosition;
-            const elementBottomPosition = elementTopPosition + elementHeight;
+        // 建立群組下拉選單
+        for (const group in departmentGroups) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = group;
             
-            // 元素進入視口
-            if (elementBottomPosition >= windowTopPosition && elementTopPosition <= windowBottomPosition) {
-                element.classList.add('in-view');
-            }
+            // 添加該群組的科系選項
+            departmentGroups[group].forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                optgroup.appendChild(option);
+            });
+            
+            departmentSelect.appendChild(optgroup);
+        }
+    }
+    
+    // 初始化Bootstrap工具提示
+    function initializeTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // 為分數徽章添加工具提示
+        document.querySelectorAll('.score-badge, .composition-badge').forEach(badge => {
+            new bootstrap.Tooltip(badge);
         });
     }
     
-    // 監聽滾動事件
-    window.addEventListener('scroll', checkIfInView);
+    // 設置隨機背景圖案顏色
+    function setRandomBackgroundPattern() {
+        const colors = [
+            'rgba(13, 110, 253, 0.03)', // 藍色
+            'rgba(25, 135, 84, 0.03)',  // 綠色
+            'rgba(255, 193, 7, 0.03)',  // 黃色
+            'rgba(102, 16, 242, 0.03)'  // 紫色
+        ];
+        
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        document.documentElement.style.setProperty('--pattern-color', randomColor);
+    }
     
-    // 初始檢查
-    checkIfInView();
-}
+    // 添加滾動動畫效果
+    function initializeScrollAnimations() {
+        const animatedElements = document.querySelectorAll('.card, .school-tag, .btn, header h1, header p');
+        
+        // 檢查元素是否在視口中
+        function checkIfInView() {
+            const windowHeight = window.innerHeight;
+            const windowTopPosition = window.scrollY;
+            const windowBottomPosition = windowTopPosition + windowHeight;
+            
+            animatedElements.forEach(element => {
+                const elementHeight = element.offsetHeight;
+                const elementTopPosition = element.getBoundingClientRect().top + windowTopPosition;
+                const elementBottomPosition = elementTopPosition + elementHeight;
+                
+                // 元素進入視口
+                if (elementBottomPosition >= windowTopPosition && elementTopPosition <= windowBottomPosition) {
+                    element.classList.add('in-view');
+                }
+            });
+        }
+        
+        // 監聽滾動事件
+        window.addEventListener('scroll', checkIfInView);
+        
+        // 初始檢查
+        checkIfInView();
+    }
+});

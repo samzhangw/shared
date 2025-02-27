@@ -264,6 +264,9 @@
                     <div class="card-header success-gradient-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h3 class="mb-0"><i class="bi bi-search me-2"></i>搜尋錄取資訊</h3>
+                            <a href="#" class="text-white" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                                <i class="bi bi-funnel"></i> 進階篩選
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -294,6 +297,81 @@
                                 <button class="region-btn" data-region="金門區"><i class="bi bi-geo me-1"></i>金門區</button>
                             </div>
                         </div>
+                        
+                        <!-- 進階篩選區塊 -->
+                        <div id="advancedFilters" class="collapse mt-3">
+                            <div class="filter-container">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="filter-title mb-0"><i class="bi bi-funnel"></i> 進階篩選條件</h5>
+                                    <span id="clear-filters" class="clear-filters">
+                                        <i class="bi bi-x-circle"></i> 清除所有篩選
+                                    </span>
+                                </div>
+                                
+                                <!-- 年份篩選 -->
+                                <div class="filter-group" id="year-filter">
+                                    <div class="filter-title fs-6">會考年份：</div>
+                                    <div class="filter-chip" data-year="114"><i class="bi bi-calendar"></i> 114年</div>
+                                    <div class="filter-chip" data-year="113"><i class="bi bi-calendar"></i> 113年</div>
+                                    <div class="filter-chip" data-year="112"><i class="bi bi-calendar"></i> 112年</div>
+                                    <div class="filter-chip" data-year="111"><i class="bi bi-calendar"></i> 111年</div>
+                                    <div class="filter-chip" data-year="110"><i class="bi bi-calendar"></i> 110年</div>
+                                </div>
+                                
+                                <!-- 積分範圍篩選 -->
+                                <div class="filter-title fs-6">積分區間：</div>
+                                <div class="score-filter" id="score-range-filter">
+                                    <div class="score-filter-btn" data-min="90" data-max="117">90分以上</div>
+                                    <div class="score-filter-btn" data-min="80" data-max="90">80-90分</div>
+                                    <div class="score-filter-btn" data-min="70" data-max="80">70-80分</div>
+                                    <div class="score-filter-btn" data-min="60" data-max="70">60-70分</div>
+                                    <div class="score-filter-btn" data-min="0" data-max="60">60分以下</div>
+                                </div>
+                                
+                                <!-- 科目篩選 -->
+                                <div class="filter-title fs-6 mt-3">國文成績：</div>
+                                <div class="filter-group subject-filter" data-subject="chinese">
+                                    <div class="filter-chip" data-grade="A++">A++</div>
+                                    <div class="filter-chip" data-grade="A+">A+</div>
+                                    <div class="filter-chip" data-grade="A">A</div>
+                                    <div class="filter-chip" data-grade="B++">B++</div>
+                                    <div class="filter-chip" data-grade="B+">B+</div>
+                                </div>
+                                
+                                <div class="filter-title fs-6 mt-3">英文成績：</div>
+                                <div class="filter-group subject-filter" data-subject="english">
+                                    <div class="filter-chip" data-grade="A++">A++</div>
+                                    <div class="filter-chip" data-grade="A+">A+</div>
+                                    <div class="filter-chip" data-grade="A">A</div>
+                                    <div class="filter-chip" data-grade="B++">B++</div>
+                                    <div class="filter-chip" data-grade="B+">B+</div>
+                                </div>
+                                
+                                <div class="filter-title fs-6 mt-3">數學成績：</div>
+                                <div class="filter-group subject-filter" data-subject="math">
+                                    <div class="filter-chip" data-grade="A++">A++</div>
+                                    <div class="filter-chip" data-grade="A+">A+</div>
+                                    <div class="filter-chip" data-grade="A">A</div>
+                                    <div class="filter-chip" data-grade="B++">B++</div>
+                                    <div class="filter-chip" data-grade="B+">B+</div>
+                                </div>
+                                
+                                <!-- 作文級分篩選 -->
+                                <div class="filter-title fs-6 mt-3">作文級分：</div>
+                                <div class="filter-group" id="composition-filter">
+                                    <div class="filter-chip" data-level="6"><i class="bi bi-pencil"></i> 6級</div>
+                                    <div class="filter-chip" data-level="5"><i class="bi bi-pencil"></i> 5級</div>
+                                    <div class="filter-chip" data-level="4"><i class="bi bi-pencil"></i> 4級</div>
+                                    <div class="filter-chip" data-level="3"><i class="bi bi-pencil"></i> 3級</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 篩選結果計數 -->
+                        <div class="mt-3 text-muted fs-6">
+                            目前顯示 <span id="filter-result-count">0</span> 筆符合條件的資料
+                        </div>
+                        
                         <div class="mb-3">
                             <label class="form-label"><i class="bi bi-bookmark-star me-1"></i>學校快速選擇</label>
                             <div class="d-flex flex-wrap gap-1">
