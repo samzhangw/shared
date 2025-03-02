@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 資料儲存
     let entries = [];
     let currentSort = 'newest';
+    let compareMode = false;
+    let schoolsToCompare = [];
     
     // 過濾器狀態
     let activeFilters = {
@@ -35,112 +37,11 @@ document.addEventListener('DOMContentLoaded', function() {
             setupAdvancedFilters(); // 設置進階篩選功能
             populateDepartmentGroups();
             setupSchoolTags(); // 設置學校快速選擇功能
+            enhanceVisualElements();
+            addParallaxEffect();
+            setupGradientAnimations();
+            setupCompareMode(); // 設置比較模式功能
         });
-    
-    // 表單提交處理
-    document.getElementById('score-form').addEventListener('submit', function(e) {
-        // 先阻止默認提交
-        e.preventDefault();
-        
-        // 檢查 hCaptcha 驗證
-        const hCaptchaResponse = hcaptcha.getResponse();
-        if (!hCaptchaResponse) {
-            // 顯示驗證錯誤
-            document.getElementById('captcha-error').style.display = 'block';
-            return;
-        } else {
-            // 隱藏錯誤提示（如果先前有顯示）
-            document.getElementById('captcha-error').style.display = 'none';
-        }
-        
-        // 添加提交動畫
-        const submitButton = this.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<div class="spinner-border spinner-border-sm text-light me-2" role="status"></div> 提交中...';
-        
-        // 添加表單震動效果
-        this.classList.add('submitting');
-        
-        // 延遲執行原始提交邏輯
-        setTimeout(() => {
-            // 移除動畫類
-            this.classList.remove('submitting');
-            
-            // 獲取表單數據
-            const newEntry = {
-                id: Date.now(),
-                date: new Date().toISOString(),
-                year: document.getElementById('year').value,
-                school: document.getElementById('school').value,
-                department: document.getElementById('department').value || '普通班',
-                region: document.getElementById('region').value, 
-                scores: {
-                    chinese: document.getElementById('chinese').value,
-                    english: document.getElementById('english').value,
-                    math: document.getElementById('math').value,
-                    science: document.getElementById('science').value,
-                    social: document.getElementById('social').value
-                },
-                composition: document.getElementById('composition').value || '0',
-                total: document.getElementById('total').value || calculateApproximateScore(),
-                totalPoints: document.getElementById('totalPoints').value || calculateTotalPoints(),
-                comment: document.getElementById('comment').value,
-                captchaResponse: hCaptchaResponse // 加入驗證回應
-            };
-            
-            // 發送到後端 API
-            showLoading();
-            
-            // 使用JSONP方式處理跨域問題
-            const formData = new FormData();
-            formData.append('action', 'addEntry');
-            formData.append('entry', JSON.stringify(newEntry));
-            
-            fetch(API_URL, {
-                method: 'POST',
-                body: formData,
-                mode: 'no-cors' // 使用no-cors模式
-            })
-                .then(response => {
-                    // 由於no-cors模式會返回一個不透明的響應
-                    // 我們無法直接讀取response內容，所以直接認為成功了
-                    // 向本地數據添加新條目
-                    entries.unshift(newEntry);
-                    
-                    // 更新顯示
-                    updateStatistics();
-                    displayEntries();
-                    
-                    // 重置表單
-                    document.getElementById('score-form').reset();
-                    
-                    // 重置 hCaptcha
-                    hcaptcha.reset();
-                    
-                    // 提交成功特效
-                    showApiMessage('success', '感謝您的分享！您的錄取資訊已成功提交。');
-                    
-                    // 若在手機版，滾動到結果區
-                    if(window.innerWidth < 768) {
-                        document.querySelector('.card.mb-4:last-of-type').scrollIntoView({behavior: 'smooth'});
-                    }
-                })
-                .catch(error => {
-                    showApiMessage('error', '提交失敗: ' + error.message);
-                })
-                .finally(() => {
-                    hideLoading();
-                    
-                    // 恢復按鈕狀態
-                    setTimeout(() => {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = originalText;
-                    }, 1000);
-                });
-        }, 800);
-    });
     
     // API 相關功能
     // 獲取所有項目
@@ -731,38 +632,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 根據五科成績和作文級分估算約略總分
     function calculateApproximateScore() {
-        const scoreValues = {
-            'A++': 7, 'A+': 6, 'A': 5, 'B++': 4, 'B+': 3, 'B': 2, 'C': 1
-        };
+        const compositionPoints = { 0: 0, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 3 };
+        const scorePoints = { 'A++': 6, 'A+': 6, 'A': 6, 'B++': 4, 'B+': 4, 'B': 4, 'C': 2 };
         
-        const chinese = scoreValues[document.getElementById('chinese').value] || 0;
-        const english = scoreValues[document.getElementById('english').value] || 0;
-        const math = scoreValues[document.getElementById('math').value] || 0;
-        const science = scoreValues[document.getElementById('science').value] || 0;
-        const social = scoreValues[document.getElementById('social').value] || 0;
+        const chinese = document.getElementById('chinese').value;
+        const english = document.getElementById('english').value;
+        const math = document.getElementById('math').value;
+        const science = document.getElementById('science').value;
+        const social = document.getElementById('social').value;
         const composition = parseInt(document.getElementById('composition').value) || 0;
         
-        // 簡單估算，實際錄取分數計算方式可能更複雜
-        const subjectScore = (chinese + english + math + science + social) * 3;
-        const compositionScore = composition * 2;
-        const approximateScore = subjectScore + compositionScore;
-        return approximateScore.toFixed(1);
+        // 使用新的計算公式
+        const totalPoints = scorePoints[chinese] + scorePoints[english] +
+                           scorePoints[math] + scorePoints[science] +
+                           scorePoints[social] + compositionPoints[composition];
+        
+        return totalPoints.toString();
     }
     
     // 計算總積點 (新增)
     function calculateTotalPoints() {
-        const pointValues = {
-            'A++': 7, 'A+': 6, 'A': 5, 'B++': 4, 'B+': 3, 'B': 2, 'C': 1
-        };
+        const creditPoints = { 'A++': 7, 'A+': 6, 'A': 5, 'B++': 4, 'B+': 3, 'B': 2, 'C': 1 };
         
-        const chinese = pointValues[document.getElementById('chinese').value] || 0;
-        const english = pointValues[document.getElementById('english').value] || 0;
-        const math = pointValues[document.getElementById('math').value] || 0;
-        const science = pointValues[document.getElementById('science').value] || 0;
-        const social = pointValues[document.getElementById('social').value] || 0;
+        const chinese = document.getElementById('chinese').value;
+        const english = document.getElementById('english').value;
+        const math = document.getElementById('math').value;
+        const science = document.getElementById('science').value;
+        const social = document.getElementById('social').value;
         
         // 總積點為五科的積點總和
-        return (chinese + english + math + science + social).toString();
+        const totalCredits = creditPoints[chinese] + creditPoints[english] +
+                            creditPoints[math] + creditPoints[science] +
+                            creditPoints[social];
+        
+        return totalCredits.toString();
     }
     
     // 自動更新總積分和總積點
@@ -1243,130 +1146,203 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // 對學校進行分組
+        let schoolGroups = {};
+        
+        filteredEntries.forEach(entry => {
+            if (!schoolGroups[entry.school]) {
+                schoolGroups[entry.school] = [];
+            }
+            schoolGroups[entry.school].push(entry);
+        });
+        
+        // 計數器用於交替顏色
+        let rowCount = 0;
+        
         // 檢查是否需要使用移動版卡片布局
         const useCardView = window.innerWidth < 576 && document.querySelector('.table-responsive').classList.contains('mobile-card-view');
         
         if (useCardView) {
             // 移動版卡片布局
-            filteredEntries.forEach(entry => {
-                const cardRow = document.createElement('div');
-                cardRow.className = 'mobile-row';
+            Object.keys(schoolGroups).forEach(schoolName => {
+                // 學校標題
+                const schoolHeader = document.createElement('div');
+                schoolHeader.className = 'school-divider px-3 py-2 bg-light text-primary fw-bold';
+                schoolHeader.innerHTML = `<i class="bi bi-building me-2"></i>${schoolName} <span class="badge bg-primary ms-2">${schoolGroups[schoolName].length}筆</span>`;
+                resultsTable.appendChild(schoolHeader);
                 
-                // 格式化分數顯示
-                const scoreDisplay = Object.entries(entry.scores).map(([subject, grade]) => {
-                    const subjectNames = {
-                        chinese: '國文',
-                        english: '英文',
-                        math: '數學',
-                        science: '自然',
-                        social: '社會'
-                    };
+                // 學校的條目
+                schoolGroups[schoolName].forEach(entry => {
+                    rowCount++;
+                    const cardRow = document.createElement('div');
+                    cardRow.className = 'mobile-row' + (rowCount % 2 === 0 ? ' even-row' : ' odd-row');
                     
-                    const subjectIcons = {
-                        chinese: '<i class="bi bi-book"></i>',
-                        english: '<i class="bi bi-translate"></i>',
-                        math: '<i class="bi bi-calculator"></i>',
-                        science: '<i class="bi bi-moisture"></i>',
-                        social: '<i class="bi bi-globe"></i>'
-                    };
+                    // 使用新的格式化函數
+                    const scoreDisplay = formatScoreDisplay(entry.scores, entry.composition);
                     
-                    return `<span class="score-badge score-${grade}" title="${getSubjectName(subject)}">${subjectIcons[subject]} ${subjectNames[subject]}: ${grade}</span>`;
-                }).join('');
-                
-                // 添加作文級分顯示
-                const compositionDisplay = entry.composition ? 
-                    `<span class="composition-badge composition-${entry.composition}" title="作文級分">
-                        <i class="bi bi-pencil-square"></i> 作文: ${entry.composition}級
-                    </span>` : '';
-                
-                cardRow.innerHTML = `
-                    <div class="mobile-cell">
-                        <span class="mobile-label">學校/科系:</span>
-                        <div class="fw-bold">${entry.school}</div>
-                        <div class="small text-muted">${entry.department}</div>
-                    </div>
-                    <div class="mobile-cell">
-                        <span class="mobile-label">會考成績:</span>
-                        <div>${scoreDisplay} ${compositionDisplay}</div>
-                    </div>
-                    <div class="mobile-cell">
-                        <span class="mobile-label">總分:</span>
-                        <div>
-                            <span class="fw-bold">積分: ${entry.total || "未提供"}</span>
-                            <span class="ms-2">積點: ${entry.totalPoints || "未提供"}</span>
+                    cardRow.innerHTML = `
+                        <div class="mobile-cell">
+                            <span class="mobile-label">科系:</span>
+                            <div class="fw-bold">${entry.department}</div>
                         </div>
-                    </div>
-                    <div class="mobile-cell">
-                        <span class="mobile-label">年份:</span>
-                        <span>${entry.year}</span>
-                    </div>
-                    <div class="mobile-cell">
-                        <span class="mobile-label">說明:</span>
-                        <span>${entry.comment ? `<i class="bi bi-chat-text me-1"></i>${entry.comment}` : '-'}</span>
-                    </div>
-                `;
-                
-                resultsTable.appendChild(cardRow);
-                
-                // 新增項目的淡入效果
-                cardRow.style.opacity = '0';
-                cardRow.style.transition = 'opacity 0.5s';
-                setTimeout(() => cardRow.style.opacity = '1', 10);
+                        <div class="mobile-cell">
+                            <span class="mobile-label">會考成績:</span>
+                            <div>${scoreDisplay}</div>
+                        </div>
+                        <div class="mobile-cell">
+                            <span class="mobile-label">總分:</span>
+                            <div>
+                                <span class="fw-bold">積分: ${entry.total || "未提供"}</span>
+                                <span class="ms-2">積點: ${entry.totalPoints || "未提供"}</span>
+                            </div>
+                        </div>
+                        <div class="mobile-cell">
+                            <span class="mobile-label">年份:</span>
+                            <span>${entry.year}</span>
+                        </div>
+                        <div class="mobile-cell">
+                            <span class="mobile-label">說明:</span>
+                            <span>${entry.comment ? `<i class="bi bi-chat-text me-1"></i>${entry.comment}` : '-'}</span>
+                        </div>
+                    `;
+                    
+                    resultsTable.appendChild(cardRow);
+                    
+                    // 新增項目的淡入效果
+                    cardRow.style.opacity = '0';
+                    cardRow.style.transition = 'opacity 0.5s';
+                    setTimeout(() => cardRow.style.opacity = '1', 10);
+                });
             });
         } else {
             // 桌面版表格布局
-            filteredEntries.forEach(entry => {
-                const row = document.createElement('tr');
-                
-                // 格式化分數顯示
-                const scoreDisplay = Object.entries(entry.scores).map(([subject, grade]) => {
-                    const subjectNames = {
-                        chinese: '國文',
-                        english: '英文',
-                        math: '數學',
-                        science: '自然',
-                        social: '社會'
-                    };
-                    
-                    const subjectIcons = {
-                        chinese: '<i class="bi bi-book"></i>',
-                        english: '<i class="bi bi-translate"></i>',
-                        math: '<i class="bi bi-calculator"></i>',
-                        science: '<i class="bi bi-moisture"></i>',
-                        social: '<i class="bi bi-globe"></i>'
-                    };
-                    
-                    return `<span class="score-badge score-${grade}" title="${getSubjectName(subject)}">${subjectIcons[subject]} ${subjectNames[subject]}: ${grade}</span>`;
-                }).join('');
-                
-                // 添加作文級分顯示
-                const compositionDisplay = entry.composition ? 
-                    `<span class="composition-badge composition-${entry.composition}" title="作文級分">
-                        <i class="bi bi-pencil-square"></i> 作文: ${entry.composition}級
-                    </span>` : '';
-                
-                row.innerHTML = `
-                    <td>
-                        <div class="fw-bold">${entry.school}</div>
-                        <div class="small text-muted">${entry.department}</div>
+            Object.keys(schoolGroups).forEach(schoolName => {
+                // 學校標題行
+                const headerRow = document.createElement('tr');
+                headerRow.className = 'school-header bg-light';
+                headerRow.innerHTML = `
+                    <td colspan="5" class="text-primary fw-bold">
+                        <i class="bi bi-building me-2"></i>${schoolName} 
+                        <span class="badge bg-primary ms-2">${schoolGroups[schoolName].length}筆</span>
                     </td>
-                    <td>${scoreDisplay} ${compositionDisplay}</td>
-                    <td>
-                        <div class="fw-bold">積分: ${entry.total || "未提供"}</div>
-                        <div>積點: ${entry.totalPoints || "未提供"}</div>
-                    </td>
-                    <td>${entry.year}</td>
-                    <td>${entry.comment ? `<i class="bi bi-chat-text me-1"></i>${entry.comment}` : '-'}</td>
                 `;
+                resultsTable.appendChild(headerRow);
                 
-                resultsTable.appendChild(row);
-                
-                // 新增項目的淡入效果
-                row.style.opacity = '0';
-                row.style.transition = 'opacity 0.5s';
-                setTimeout(() => row.style.opacity = '1', 10);
+                // 學校條目
+                schoolGroups[schoolName].forEach(entry => {
+                    rowCount++;
+                    const row = document.createElement('tr');
+                    row.className = rowCount % 2 === 0 ? 'even-row' : 'odd-row';
+                    
+                    // 使用新的格式化函數
+                    const scoreDisplay = formatScoreDisplay(entry.scores, entry.composition);
+                    
+                    row.innerHTML = `
+                        <td>
+                            <div class="fw-bold text-truncate">${entry.department}</div>
+                        </td>
+                        <td>${scoreDisplay}</td>
+                        <td>
+                            <div class="fw-bold">積分: ${entry.total || "未提供"}</div>
+                            <div>積點: ${entry.totalPoints || "未提供"}</div>
+                        </td>
+                        <td>${entry.year}</td>
+                        <td>${entry.comment ? `<i class="bi bi-chat-text me-1"></i>${entry.comment}` : '-'}</td>
+                    `;
+                    
+                    resultsTable.appendChild(row);
+                    
+                    // 新增項目的淡入效果
+                    row.style.opacity = '0';
+                    row.style.transition = 'opacity 0.5s';
+                    setTimeout(() => row.style.opacity = '1', 10);
+                });
             });
         }
+        
+        // 添加項目進入動畫
+        const tableItems = document.querySelectorAll('#results-table tr, #results-table .mobile-row, #results-table .school-divider, #results-table .school-header');
+        tableItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(10px)';
+            item.style.transition = `opacity 0.5s ease, transform 0.5s ease ${index * 0.05}s`;
+            
+            setTimeout(() => {
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, 50);
+        });
+    }
+    
+    // 新增：更好地顯示成績的函數
+    function formatScoreDisplay(scores, composition) {
+        // 將成績按科目分組顯示
+        const scoreGroups = {
+            languages: {
+                chinese: scores.chinese,
+                english: scores.english
+            },
+            math: {
+                math: scores.math
+            },
+            sciences: {
+                science: scores.science,
+                social: scores.social
+            }
+        };
+        
+        // 科目顯示名稱和圖標
+        const subjectNames = {
+            chinese: '國文',
+            english: '英文',
+            math: '數學',
+            science: '自然',
+            social: '社會'
+        };
+        
+        const subjectIcons = {
+            chinese: '<i class="bi bi-book"></i>',
+            english: '<i class="bi bi-translate"></i>',
+            math: '<i class="bi bi-calculator"></i>',
+            science: '<i class="bi bi-moisture"></i>',
+            social: '<i class="bi bi-globe"></i>'
+        };
+        
+        // 生成HTML
+        let html = '<div class="score-display">';
+        
+        // 語文類
+        html += '<div class="score-group languages">';
+        Object.entries(scoreGroups.languages).forEach(([subject, grade]) => {
+            html += `<span class="score-badge score-${grade}" title="${subjectNames[subject]}">${subjectIcons[subject]} ${subjectNames[subject]}: ${grade}</span>`;
+        });
+        html += '</div>';
+        
+        // 數學
+        html += '<div class="score-group math">';
+        Object.entries(scoreGroups.math).forEach(([subject, grade]) => {
+            html += `<span class="score-badge score-${grade}" title="${subjectNames[subject]}">${subjectIcons[subject]} ${subjectNames[subject]}: ${grade}</span>`;
+        });
+        html += '</div>';
+        
+        // 自然社會
+        html += '<div class="score-group sciences">';
+        Object.entries(scoreGroups.sciences).forEach(([subject, grade]) => {
+            html += `<span class="score-badge score-${grade}" title="${subjectNames[subject]}">${subjectIcons[subject]} ${subjectNames[subject]}: ${grade}</span>`;
+        });
+        html += '</div>';
+        
+        // 作文
+        if (composition) {
+            html += `<div class="score-group composition">
+                <span class="composition-badge composition-${composition}" title="作文級分">
+                    <i class="bi bi-pencil-square"></i> 作文: ${composition}級
+                </span>
+            </div>`;
+        }
+        
+        html += '</div>';
+        return html;
     }
     
     // 填入科系群組資料
@@ -1516,5 +1492,686 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('results-section').scrollIntoView({behavior: 'smooth'});
             });
         });
+    }
+    
+    function enhanceVisualElements() {
+        // Add floating animation to key elements
+        document.querySelectorAll('header h1, .card-header h3').forEach(element => {
+            element.classList.add('floating-element');
+        });
+        
+        // Add 3D card effect
+        document.querySelectorAll('.card').forEach(card => {
+            card.classList.add('card-3d');
+        });
+        
+        // Add pulse effect to submit buttons
+        document.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.classList.add('pulse-effect');
+        });
+        
+        // Enhance badges with glass morphism
+        document.querySelectorAll('.score-badge, .composition-badge').forEach(badge => {
+            badge.style.backdropFilter = 'blur(4px)';
+            badge.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.15)';
+        });
+    }
+    
+    function addParallaxEffect() {
+        document.addEventListener('mousemove', function(e) {
+            const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+            const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+            
+            document.body.style.backgroundPositionX = moveX + 'px';
+            document.body.style.backgroundPositionY = moveY + 'px';
+        });
+    }
+    
+    function setupGradientAnimations() {
+        // Create dynamic gradient transitions for card headers
+        document.querySelectorAll('.gradient-card-header, .success-gradient-header, .info-gradient-header, .warning-gradient-header').forEach(header => {
+            let hue = 0;
+            setInterval(() => {
+                hue = (hue + 1) % 360;
+                header.style.filter = `hue-rotate(${hue}deg)`;
+            }, 100);
+        });
+    }
+    
+    // 設置學校比較功能
+    function setupCompareMode() {
+        const compareBtn = document.getElementById('compare-btn');
+        if (!compareBtn) return;
+        
+        // 當點擊比較按鈕時
+        compareBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 切換比較模式
+            compareMode = !compareMode;
+            
+            // 更新比較按鈕狀態
+            if (compareMode) {
+                this.innerHTML = '<i class="bi bi-x-circle"></i> 退出比較';
+                this.classList.add('active');
+                showApiMessage('success', '已啟用比較模式，點擊學校卡片選擇要比較的學校');
+                document.body.classList.add('compare-mode-active');
+            } else {
+                this.innerHTML = '<i class="bi bi-bar-chart-steps"></i> 比較模式';
+                this.classList.remove('active');
+                schoolsToCompare = [];
+                document.body.classList.remove('compare-mode-active');
+                // 重新顯示所有學校
+                applyFilters();
+            }
+            
+            // 如果有已經選中的學校，顯示比較視窗
+            if (schoolsToCompare.length > 0 && !compareMode) {
+                showComparisonModal();
+            }
+        });
+        
+        // 在結果列表上添加點擊事件
+        document.getElementById('results-table').addEventListener('click', function(e) {
+            if (!compareMode) return;
+            
+            // 找出點擊的是哪個學校
+            let schoolRow = e.target.closest('tr') || e.target.closest('.mobile-row');
+            if (!schoolRow) return;
+            
+            // 找到學校名稱
+            let schoolName = '';
+            if (schoolRow.classList.contains('mobile-row')) {
+                schoolName = schoolRow.querySelector('.fw-bold').textContent;
+            } else {
+                schoolName = schoolRow.querySelector('td:first-child .fw-bold').textContent;
+            }
+            
+            // 檢查是否已在比較列表中
+            const index = schoolsToCompare.findIndex(s => s.school === schoolName);
+            
+            if (index !== -1) {
+                // 已在列表中，移除
+                schoolsToCompare.splice(index, 1);
+                schoolRow.classList.remove('selected-for-compare');
+                showApiMessage('info', `已從比較列表移除 ${schoolName}`);
+            } else {
+                // 還沒加入，檢查是否超過4所
+                if (schoolsToCompare.length >= 4) {
+                    showApiMessage('error', '最多只能比較4所學校');
+                    return;
+                }
+                
+                // 取得該學校的所有數據
+                const schoolData = getSchoolData(schoolName);
+                if (schoolData.length === 0) {
+                    showApiMessage('error', `沒有找到 ${schoolName} 的完整數據`);
+                    return;
+                }
+                
+                // 加入比較列表
+                schoolsToCompare.push({
+                    school: schoolName,
+                    data: schoolData
+                });
+                
+                schoolRow.classList.add('selected-for-compare');
+                showApiMessage('success', `已將 ${schoolName} 加入比較列表`);
+                
+                // 如果已有2所以上學校，顯示比較按鈕
+                if (schoolsToCompare.length >= 2) {
+                    const compareNowBtn = document.getElementById('compare-now-btn') || createCompareNowButton();
+                    compareNowBtn.style.display = 'block';
+                }
+            }
+        });
+        
+        // 創建"立即比較"浮動按鈕
+        function createCompareNowButton() {
+            const btn = document.createElement('button');
+            btn.id = 'compare-now-btn';
+            btn.className = 'btn btn-primary position-fixed compare-now-btn';
+            btn.innerHTML = '<i class="bi bi-bar-chart-steps me-2"></i>立即比較';
+            btn.style.bottom = '20px';
+            btn.style.right = '20px';
+            btn.style.display = 'none';
+            btn.style.zIndex = '1000';
+            btn.style.boxShadow = '0 4px 10px rgba(0,0,0,0.2)';
+            
+            btn.addEventListener('click', function() {
+                showComparisonModal();
+            });
+            
+            document.body.appendChild(btn);
+            return btn;
+        }
+    }
+    
+    // 獲取特定學校的所有數據
+    function getSchoolData(schoolName) {
+        return entries.filter(entry => entry.school === schoolName);
+    }
+    
+    // 顯示比較視窗
+    function showComparisonModal() {
+        // 如果只有一所或沒有學校，顯示提示
+        if (schoolsToCompare.length < 2) {
+            showApiMessage('info', '請至少選擇2所學校進行比較');
+            return;
+        }
+        
+        // 先檢查是否已存在比較視窗，存在則移除
+        let existingModal = document.getElementById('compareModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // 創建模態框
+        const modalHTML = `
+        <div class="modal fade" id="compareModal" tabindex="-1" aria-labelledby="compareModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header gradient-card-header">
+                        <h5 class="modal-title text-white" id="compareModalLabel">
+                            <i class="bi bi-bar-chart-steps me-2"></i>學校錄取分數比較
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="compare-content">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th>比較項目</th>
+                                        ${schoolsToCompare.map(school => 
+                                            `<th class="text-center">${school.school}</th>`
+                                        ).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody id="compare-table-body">
+                                    <!-- 比較內容將在這裡動態生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="compare-chart-container" class="mt-4" style="height: 400px;">
+                            <canvas id="compare-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                        <button type="button" class="btn btn-primary" id="download-compare-btn">
+                            <i class="bi bi-download me-1"></i>下載比較結果
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        
+        // 添加模態框到頁面
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // 顯示模態框
+        const compareModal = new bootstrap.Modal(document.getElementById('compareModal'));
+        compareModal.show();
+        
+        // 填充比較數據
+        populateComparisonData();
+    }
+    
+    // 填充比較數據
+    function populateComparisonData() {
+        const compareTableBody = document.getElementById('compare-table-body');
+        if (!compareTableBody) return;
+        
+        // 計算每所學校的平均分數
+        const schoolStats = schoolsToCompare.map(school => {
+            const scores = school.data.map(entry => parseFloat(entry.total) || 0).filter(score => score > 0);
+            const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+            
+            // 計算各科成績分布
+            const subjectDistribution = {
+                chinese: calculateGradeDistribution(school.data, 'chinese'),
+                english: calculateGradeDistribution(school.data, 'english'),
+                math: calculateGradeDistribution(school.data, 'math'),
+                science: calculateGradeDistribution(school.data, 'science'),
+                social: calculateGradeDistribution(school.data, 'social')
+            };
+            
+            // 計算作文分數分布
+            const compositionDistribution = calculateCompositionDistribution(school.data);
+            
+            return {
+                school: school.school,
+                entryCount: school.data.length,
+                avgScore: avgScore.toFixed(2),
+                minScore: Math.min(...scores).toFixed(2),
+                maxScore: Math.max(...scores).toFixed(2),
+                subjectDistribution,
+                compositionDistribution,
+                recentYears: getRecentYearsData(school.data)
+            };
+        });
+        
+        // 生成表格行
+        const rows = [
+            // 1. 資料筆數
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-file-earmark-text me-2"></i>資料筆數</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">${stat.entryCount} 筆</td>`
+                ).join('')}
+            </tr>`,
+            
+            // 2. 平均積分
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-calculator me-2"></i>平均積分</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center fw-bold fs-5">${stat.avgScore}</td>`
+                ).join('')}
+            </tr>`,
+            
+            // 3. 最高/最低積分
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-graph-up-arrow me-2"></i>最高/最低積分</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="text-success">最高: ${stat.maxScore}</div>
+                        <div class="text-danger">最低: ${stat.minScore}</div>
+                    </td>`
+                ).join('')}
+            </tr>`,
+            
+            // 4. 國文成績分布
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-book me-2"></i>國文成績分布</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="subject-distribution mb-2">
+                            ${generateDistributionBars(stat.subjectDistribution.chinese)}
+                        </div>
+                        <div class="small text-muted">最常見: ${getMostCommonGrade(stat.subjectDistribution.chinese)}</div>
+                    </td>`
+                ).join('')}
+            </tr>`,
+            
+            // 5. 英文成績分布
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-translate me-2"></i>英文成績分布</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="subject-distribution mb-2">
+                            ${generateDistributionBars(stat.subjectDistribution.english)}
+                        </div>
+                        <div class="small text-muted">最常見: ${getMostCommonGrade(stat.subjectDistribution.english)}</div>
+                    </td>`
+                ).join('')}
+            </tr>`,
+            
+            // 6. 數學成績分布
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-calculator me-2"></i>數學成績分布</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="subject-distribution mb-2">
+                            ${generateDistributionBars(stat.subjectDistribution.math)}
+                        </div>
+                        <div class="small text-muted">最常見: ${getMostCommonGrade(stat.subjectDistribution.math)}</div>
+                    </td>`
+                ).join('')}
+            </tr>`,
+            
+            // 7. 作文級分分布
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-pencil-square me-2"></i>作文級分分布</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="composition-distribution mb-2">
+                            ${generateCompositionBars(stat.compositionDistribution)}
+                        </div>
+                        <div class="small text-muted">最常見: ${getMostCommonComposition(stat.compositionDistribution)}級</div>
+                    </td>`
+                ).join('')}
+            </tr>`,
+            
+            // 8. 年度趨勢
+            `<tr>
+                <td class="fw-bold"><i class="bi bi-calendar me-2"></i>年度積分趨勢</td>
+                ${schoolStats.map(stat => 
+                    `<td class="text-center">
+                        <div class="year-trend" style="height: 60px;">
+                            ${generateYearTrendSpark(stat.recentYears)}
+                        </div>
+                    </td>`
+                ).join('')}
+            </tr>`
+        ];
+        
+        // 填充表格
+        compareTableBody.innerHTML = rows.join('');
+        
+        // 創建比較圖表
+        createComparisonChart(schoolStats);
+        
+        // 設置下載功能
+        document.getElementById('download-compare-btn').addEventListener('click', function() {
+            downloadComparisonResult(schoolStats);
+        });
+    }
+    
+    // 計算特定科目的成績分布
+    function calculateGradeDistribution(entries, subject) {
+        const distribution = {
+            'A++': 0, 'A+': 0, 'A': 0, 'B++': 0, 'B+': 0, 'B': 0, 'C': 0
+        };
+        
+        entries.forEach(entry => {
+            if (entry.scores && entry.scores[subject]) {
+                distribution[entry.scores[subject]]++;
+            }
+        });
+        
+        return distribution;
+    }
+    
+    // 計算作文級分分布
+    function calculateCompositionDistribution(entries) {
+        const distribution = {
+            0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
+        };
+        
+        entries.forEach(entry => {
+            if (entry.composition) {
+                distribution[entry.composition]++;
+            }
+        });
+        
+        return distribution;
+    }
+    
+    // 生成特定科目的分布長條圖
+    function generateDistributionBars(distribution) {
+        const grades = ['A++', 'A+', 'A', 'B++', 'B+', 'B', 'C'];
+        const colors = {
+            'A++': '#d32f2f',
+            'A+': '#f44336',
+            'A': '#ff5722',
+            'B++': '#ff9800',
+            'B+': '#ffb74d',
+            'B': '#ffe0b2',
+            'C': '#e0e0e0'
+        };
+        
+        const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+        if (total === 0) return '<div class="text-muted">無數據</div>';
+        
+        let html = '<div class="d-flex justify-content-center align-items-end" style="height: 40px;">';
+        
+        grades.forEach(grade => {
+            const percentage = total > 0 ? (distribution[grade] / total * 100) : 0;
+            if (percentage > 0) {
+                html += `<div class="mx-1" style="height: ${Math.max(5, percentage * 0.4)}px; width: 8px; background-color: ${colors[grade]};" 
+                    data-bs-toggle="tooltip" title="${grade}: ${distribution[grade]}人 (${percentage.toFixed(1)}%)"></div>`;
+            }
+        });
+        
+        html += '</div>';
+        return html;
+    }
+    
+    // 生成作文級分分布長條圖
+    function generateCompositionBars(distribution) {
+        const levels = [6, 5, 4, 3, 2, 1, 0];
+        const colors = {
+            6: '#9c27b0', 5: '#4caf50', 4: '#8bc34a', 
+            3: '#ffc107', 2: '#ff9800', 1: '#8d6e63', 0: '#9e9e9e'
+        };
+        
+        const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+        if (total === 0) return '<div class="text-muted">無數據</div>';
+        
+        let html = '<div class="d-flex justify-content-center align-items-end" style="height: 40px;">';
+        
+        levels.forEach(level => {
+            const percentage = total > 0 ? (distribution[level] / total * 100) : 0;
+            if (percentage > 0) {
+                html += `<div class="mx-1" style="height: ${Math.max(5, percentage * 0.4)}px; width: 8px; background-color: ${colors[level]};" 
+                    data-bs-toggle="tooltip" title="${level}級: ${distribution[level]}人 (${percentage.toFixed(1)}%)"></div>`;
+            }
+        });
+        
+        html += '</div>';
+        return html;
+    }
+    
+    // 獲取最常見的成績
+    function getMostCommonGrade(distribution) {
+        let mostCommon = '';
+        let maxCount = 0;
+        
+        for (const grade in distribution) {
+            if (distribution[grade] > maxCount) {
+                maxCount = distribution[grade];
+                mostCommon = grade;
+            }
+        }
+        
+        return mostCommon;
+    }
+    
+    // 獲取最常見的作文級分
+    function getMostCommonComposition(distribution) {
+        let mostCommon = '';
+        let maxCount = 0;
+        
+        for (const level in distribution) {
+            if (distribution[level] > maxCount) {
+                maxCount = distribution[level];
+                mostCommon = level;
+            }
+        }
+        
+        return mostCommon;
+    }
+    
+    // 獲取近年數據
+    function getRecentYearsData(entries) {
+        const years = ['110', '111', '112', '113', '114'];
+        const yearData = {};
+        
+        years.forEach(year => {
+            const yearEntries = entries.filter(entry => entry.year === year);
+            if (yearEntries.length > 0) {
+                const scores = yearEntries.map(entry => parseFloat(entry.total) || 0).filter(score => score > 0);
+                const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+                yearData[year] = avgScore ? avgScore.toFixed(2) : null;
+            } else {
+                yearData[year] = null;
+            }
+        });
+        
+        return yearData;
+    }
+    
+    // 生成年度趨勢迷你圖
+    function generateYearTrendSpark(yearData) {
+        const years = ['110', '111', '112', '113', '114'];
+        const hasData = Object.values(yearData).some(val => val !== null);
+        
+        if (!hasData) return '<div class="text-muted">無足夠資料</div>';
+        
+        // 找出最大最小值，用於縮放
+        const values = Object.values(yearData).filter(val => val !== null).map(val => parseFloat(val));
+        const max = Math.max(...values);
+        const min = Math.min(...values);
+        const range = max - min;
+        
+        // 生成SVG迷你圖
+        let svg = `<svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none">`;
+        
+        // 添加連接線
+        let pathPoints = [];
+        years.forEach((year, i) => {
+            if (yearData[year] !== null) {
+                const x = i * (100 / (years.length - 1));
+                const y = 60 - ((parseFloat(yearData[year]) - min) / (range || 1) * 50);
+                pathPoints.push(`${x},${y}`);
+            }
+        });
+        
+        if (pathPoints.length > 1) {
+            svg += `<path d="M${pathPoints.join(' L')}" fill="none" stroke="#0d6efd" stroke-width="2" />`;
+        }
+        
+        // 添加數據點
+        years.forEach((year, i) => {
+            if (yearData[year] !== null) {
+                const x = i * (100 / (years.length - 1));
+                const y = 60 - ((parseFloat(yearData[year]) - min) / (range || 1) * 50);
+                svg += `<circle cx="${x}" cy="${y}" r="3" fill="#0d6efd" />`;
+                svg += `<text x="${x}" y="${y - 5}" font-size="8" text-anchor="middle" fill="#495057">${yearData[year]}</text>`;
+            }
+        });
+        
+        svg += `</svg>`;
+        return svg;
+    }
+    
+    // 創建比較圖表
+    function createComparisonChart(schoolStats) {
+        // 使用Chart.js創建比較圖表
+        const ctx = document.getElementById('compare-chart').getContext('2d');
+        
+        // 先檢查是否有Chart.js库
+        if (typeof Chart === 'undefined') {
+            // 動態加載Chart.js
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.onload = function() {
+                renderChart();
+            };
+            document.head.appendChild(script);
+        } else {
+            renderChart();
+        }
+        
+        function renderChart() {
+            // 準備數據
+            const labels = schoolStats.map(stat => stat.school);
+            const avgScores = schoolStats.map(stat => parseFloat(stat.avgScore));
+            const minScores = schoolStats.map(stat => parseFloat(stat.minScore));
+            const maxScores = schoolStats.map(stat => parseFloat(stat.maxScore));
+            
+            // 創建圖表
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '平均積分',
+                            data: avgScores,
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '最低積分',
+                            data: minScores,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '最高積分',
+                            data: maxScores,
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '學校錄取分數比較圖',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: '積分'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // 下載比較結果
+    function downloadComparisonResult(schoolStats) {
+        // 創建CSV內容
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";  // 添加BOM以支持中文
+        
+        // 添加標題行
+        let headers = ["比較項目"];
+        schoolStats.forEach(stat => {
+            headers.push(stat.school);
+        });
+        csvContent += headers.join(",") + "\r\n";
+        
+        // 添加資料行
+        // 1. 資料筆數
+        let row1 = ["資料筆數"];
+        schoolStats.forEach(stat => {
+            row1.push(stat.entryCount);
+        });
+        csvContent += row1.join(",") + "\r\n";
+        
+        // 2. 平均積分
+        let row2 = ["平均積分"];
+        schoolStats.forEach(stat => {
+            row2.push(stat.avgScore);
+        });
+        csvContent += row2.join(",") + "\r\n";
+        
+        // 3. 最高積分
+        let row3 = ["最高積分"];
+        schoolStats.forEach(stat => {
+            row3.push(stat.maxScore);
+        });
+        csvContent += row3.join(",") + "\r\n";
+        
+        // 4. 最低積分
+        let row4 = ["最低積分"];
+        schoolStats.forEach(stat => {
+            row4.push(stat.minScore);
+        });
+        csvContent += row4.join(",") + "\r\n";
+        
+        // 創建下載連結
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "學校比較報告.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 });

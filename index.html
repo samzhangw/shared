@@ -41,6 +41,67 @@
       #score-form.submitting {
         animation: formShake 0.4s ease-in-out;
       }
+      
+      /* Add additional styling for enhanced visual appeal */
+      .card {
+        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                    box-shadow 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      
+      .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+      }
+      
+      header h1 {
+        background: linear-gradient(120deg, #0d6efd, #6610f2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        font-weight: 800;
+        text-shadow: none;
+      }
+      
+      .score-badge, .composition-badge {
+        backdrop-filter: blur(4px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+      }
+      
+      .score-badge:hover, .composition-badge:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+      
+      .floating-element {
+        animation: float-animation 3s ease-in-out infinite;
+      }
+      
+      @keyframes float-animation {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+      
+      .btn {
+        overflow: hidden;
+        position: relative;
+      }
+      
+      .btn::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: -100%;
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+        transition: all 0.6s;
+      }
+      
+      .btn:hover::after {
+        left: 100%;
+      }
     </style>
 </head>
 <body>
@@ -95,8 +156,8 @@
 
     <div class="container">
         <header class="mb-4 mt-3 text-center">
-            <h1><i class="bi bi-journal-check me-2"></i>高中錄取分數分享平台</h1>
-            <p>分享你的會考成績與錄取高中，幫助學弟妹了解各校錄取分數區間</p>
+            <h1 class="floating-element"><i class="bi bi-journal-check me-2"></i>高中錄取分數分享平台</h1>
+            <p class="lead">分享你的會考成績與錄取高中，幫助學弟妹了解各校錄取分數區間</p>
         </header>
 
         <!-- 右上角使用說明按鈕 -->
@@ -108,7 +169,7 @@
 
         <div class="row">
             <div class="col-lg-6 mb-4" id="share-section">
-                <div class="card">
+                <div class="card mb-4 glass-card card-3d">
                     <div class="card-header gradient-card-header">
                         <h3 class="mb-0"><i class="bi bi-share me-2"></i>分享你的錄取資訊</h3>
                     </div>
@@ -271,9 +332,14 @@
                     <div class="card-header success-gradient-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h3 class="mb-0"><i class="bi bi-search me-2"></i>搜尋錄取資訊</h3>
-                            <a href="#" class="text-white" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                                <i class="bi bi-funnel"></i> 進階篩選
-                            </a>
+                            <div>
+                                <a href="#" class="text-white me-3" id="compare-btn" data-bs-toggle="tooltip" title="比較選中的學校">
+                                    <i class="bi bi-bar-chart-steps"></i> 比較模式
+                                </a>
+                                <a href="#" class="text-white" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                                    <i class="bi bi-funnel"></i> 進階篩選
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
