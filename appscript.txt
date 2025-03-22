@@ -1,0 +1,196 @@
+// 處理 GET 請求，支援分頁
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    
+    if (action === 'getEntries') {
+      const page = parseInt(e.parameter.page) || 1; // 預設第1頁
+      const pageSize = parseInt(e.parameter.pageSize) || 10; // 預設每頁10筆
+      const entries = getAllEntries(page, pageSize);
+      logAction('GET', 'getEntries', true, `成功獲取第 ${page} 頁資料，每頁 ${pageSize} 筆`);
+      return sendResponse(true, '成功獲取資料', { 
+        entries: entries.data,
+        total: entries.total,
+        page: page,
+        pageSize: pageSize,
+        totalPages: entries.totalPages
+      });
+    } else {
+      logAction('GET', action || 'unknown', false, '未指定有效操作');
+      return sendResponse(false, '未指定有效操作');
+    }
+  } catch (error) {
+    logAction('GET', 'unknown', false, `處理請求時出錯: ${error.message}`);
+    return sendResponse(false, `處理請求時出錯: ${error.message}`);
+  }
+}
+
+function doPost(e) {
+  try {
+    let requestData;
+    let action;
+    let entry;
+    
+    if (e.postData && e.postData.type === "application/json") {
+      requestData = JSON.parse(e.postData.contents);
+      action = requestData.action;
+      entry = requestData.entry;
+    } else {
+      action = e.parameter.action;
+      if (e.parameter.entry) {
+        entry = JSON.parse(e.parameter.entry);
+      }
+    }
+    
+    if (action === 'addEntry' && entry) {
+      const result = addEntry(entry);
+      logAction('POST', 'addEntry', true, '成功新增資料');
+      return sendResponse(true, '成功新增資料', { entry: result });
+    } else {
+      logAction('POST', action || 'unknown', false, '未指定有效操作或缺少必要參數');
+      return sendResponse(false, '未指定有效操作或缺少必要參數');
+    }
+  } catch (error) {
+    logAction('POST', 'unknown', false, `處理請求時出錯: ${error.message}`);
+    return sendResponse(false, `處理請求時出錯: ${error.message}`);
+  }
+}
+
+// 新增日誌記錄函數
+function logAction(method, action, success, message) {
+  const logSheet = getLogSheet();
+  const timestamp = new Date().toISOString(); // 使用 ISO 格式記錄時間
+  const logEntry = [
+    timestamp,
+    method,      // GET 或 POST
+    action,      // 操作類型
+    success,     // true 或 false
+    message      // 訊息
+  ];
+  
+  logSheet.appendRow(logEntry);
+}
+
+// 取得所有資料，支援分頁
+function getAllEntries(page = 1, pageSize = 10) {
+  const sheet = getDataSheet();
+  const dataRange = sheet.getDataRange();
+  const values = dataRange.getValues();
+  
+  // 排除標題行
+  const headers = values[0];
+  const entries = [];
+  
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const entry = {
+      id: row[0],
+      date: row[1],
+      year: row[2],
+      school: row[3],
+      department: row[4],
+      region: row[5], 
+      scores: JSON.parse(row[6]),
+      composition: row[7],
+      total: row[8],
+      totalPoints: row[9],
+      comment: row[10]
+    };
+    entries.push(entry);
+  }
+  
+  // 按照日期排序 (最新在前)
+  entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  // 計算分頁資訊
+  const total = entries.length;
+  const totalPages = Math.ceil(total / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  
+  // 確保頁數在有效範圍內
+  if (startIndex >= total && total > 0) {
+    throw new Error(`頁數超出範圍，總共有 ${totalPages} 頁`);
+  }
+  
+  // 切割資料
+  const paginatedEntries = entries.slice(startIndex, endIndex);
+  
+  return {
+    data: paginatedEntries,
+    total: total,
+    totalPages: totalPages
+  };
+}
+
+function addEntry(entry) {
+  const sheet = getDataSheet();
+  
+  // 如果沒有提供 ID，生成一個新的
+  if (!entry.id) {
+    const timestamp = Date.now(); // 毫秒級時間戳
+    const random = Math.floor(Math.random() * 1000); // 0-999的隨機數
+    entry.id = `${timestamp}-${random}`; // 格式如：1677654321000-456
+  }
+
+  // 準備存入資料
+  const rowData = [
+    entry.id,
+    entry.date,
+    entry.year,
+    entry.school,
+    entry.department,
+    entry.region, 
+    JSON.stringify(entry.scores),  
+    entry.composition,
+    entry.total,
+    entry.totalPoints,
+    entry.comment
+  ];
+  
+  sheet.appendRow(rowData);
+  return entry;
+}
+
+// 取得或建立資料工作表
+function getDataSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('ScoreEntries');
+  
+  // 如果工作表不存在，建立一個新的
+  if (!sheet) {
+    sheet = ss.insertSheet('ScoreEntries');
+    // 設置表頭
+    sheet.appendRow(['ID', '日期', '年份', '學校', '科系', '區域', '分數', '作文級分', '總積分', '總積點', '備註']);
+    // 凍結表頭
+    sheet.setFrozenRows(1);
+  }
+  
+  return sheet;
+}
+// 取得或建立日誌工作表
+function getLogSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Logs');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('Logs');
+    // 設置表頭
+    sheet.appendRow(['時間', '請求方法', '操作', '成功', '訊息']);
+    sheet.setFrozenRows(1); // 凍結表頭
+  }
+  
+  return sheet;
+}
+
+// 原有的 sendResponse 函數保持不變
+function sendResponse(success, message, data = {}) {
+  const response = {
+    success: success,
+    message: message,
+    ...data
+  };
+  
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}

@@ -12,7 +12,7 @@
       /* 頁面載入動畫 */
       body {
         opacity: 0;
-        transition: opacity 0.8s;
+        transition: opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1);
       }
       
       body.page-loaded {
@@ -23,7 +23,8 @@
       .card, .school-tag, .btn, header h1, header p {
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.8s, transform 0.8s;
+        transition: opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1), 
+                    transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
       }
       
       .card.in-view, .school-tag.in-view, .btn.in-view, header h1.in-view, header p.in-view {
@@ -44,8 +45,8 @@
       
       /* Add additional styling for enhanced visual appeal */
       .card {
-        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
-                    box-shadow 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), 
+                    box-shadow 0.5s cubic-bezier(0.19, 1, 0.22, 1);
       }
       
       .card:hover {
@@ -65,7 +66,7 @@
       .score-badge, .composition-badge {
         backdrop-filter: blur(4px);
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
       }
       
       .score-badge:hover, .composition-badge:hover {
@@ -102,7 +103,43 @@
       .btn:hover::after {
         left: 100%;
       }
+      
+      /* 效能優化 - 減少重繪與重排 */
+      .gpu-accelerated {
+        transform: translateZ(0);
+        will-change: transform, opacity;
+      }
+      
+      /* 平滑滾動 */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* 資料載入效果 */
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      
+      .shimmer-effect {
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .shimmer-effect::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+        animation: shimmer 2s infinite;
+      }
     </style>
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
     <!-- 頁首導航菜單 -->
@@ -129,10 +166,10 @@
             <h5 class="fw-bold text-primary mb-0"><i class="bi bi-journal-check me-2"></i>選單</h5>
         </div>
         <div class="pt-2">
-            <a href="https://sites.google.com/view/tyctw/" class="menu-item active">
+            <a href="https://rcpett.vercel.app/" class="menu-item active">
                 <i class="bi bi-house-door"></i>首頁
             </a>
-            <a href="https://tyctw.github.io/" class="menu-item">
+            <a href="https://caprcpet.vercel.app/" class="menu-item">
                 <i class="bi bi-share"></i>落點分析
             </a>
             <a href="https://tyctw.github.io/report_form" class="menu-item">
@@ -156,20 +193,23 @@
 
     <div class="container">
         <header class="mb-4 mt-3 text-center">
-            <h1 class="floating-element"><i class="bi bi-journal-check me-2"></i>高中錄取分數分享平台</h1>
-            <p class="lead">分享你的會考成績與錄取高中，幫助學弟妹了解各校錄取分數區間</p>
+            <h1 class="floating-element gpu-accelerated"><i class="bi bi-journal-check me-2"></i>高中錄取分數分享平台</h1>
+            <p class="lead gpu-accelerated">分享你的會考成績與錄取高中，幫助學弟妹了解各校錄取分數區間</p>
         </header>
 
         <!-- 右上角使用說明按鈕 -->
         <div class="position-fixed top-0 end-0 m-3 mt-5 d-none d-lg-block" style="z-index: 1030;">
-            <button class="btn btn-primary rounded-circle shadow help-btn" style="width: 45px; height: 45px;" data-bs-toggle="tooltip" data-bs-placement="left" title="使用說明">
+            <button class="btn btn-primary rounded-circle shadow help-btn gpu-accelerated" style="width: 45px; height: 45px;" data-bs-toggle="tooltip" data-bs-placement="left" title="使用說明">
                 <i class="bi bi-question-lg"></i>
+            </button>
+            <button id="theme-toggle" class="btn btn-secondary rounded-circle shadow gpu-accelerated mt-2" style="width: 45px; height: 45px;" data-bs-toggle="tooltip" data-bs-placement="left" title="切換深色/淺色模式">
+                <i class="bi bi-moon"></i>
             </button>
         </div>
 
         <div class="row">
             <div class="col-lg-6 mb-4" id="share-section">
-                <div class="card mb-4 glass-card card-3d">
+                <div class="card mb-4 glass-card card-3d gpu-accelerated">
                     <div class="card-header gradient-card-header">
                         <h3 class="mb-0"><i class="bi bi-share me-2"></i>分享你的錄取資訊</h3>
                     </div>
@@ -332,14 +372,9 @@
                     <div class="card-header success-gradient-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h3 class="mb-0"><i class="bi bi-search me-2"></i>搜尋錄取資訊</h3>
-                            <div>
-                                <a href="#" class="text-white me-3" id="compare-btn" data-bs-toggle="tooltip" title="比較選中的學校">
-                                    <i class="bi bi-bar-chart-steps"></i> 比較模式
-                                </a>
-                                <a href="#" class="text-white" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                                    <i class="bi bi-funnel"></i> 進階篩選
-                                </a>
-                            </div>
+                            <a href="#" class="text-white" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                                <i class="bi bi-funnel"></i> 進階篩選
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -448,20 +483,20 @@
                         <div class="mb-3">
                             <label class="form-label"><i class="bi bi-bookmark-star me-1"></i>學校快速選擇</label>
                             <div class="d-flex flex-wrap gap-1">
-                                <button class="btn btn-sm btn-outline-secondary school-tag">建國中學</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">師大附中</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">北一女中</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">中山女高</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">成功高中</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">台中一中</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">台中女中</button>
-                                <button class="btn btn-sm btn-outline-secondary school-tag">高雄中學</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">建國中學</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">師大附中</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">北一女中</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">中山女高</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">成功高中</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">台中一中</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">台中女中</button>
+                                <button class="btn btn-sm btn-outline-secondary school-tag gpu-accelerated">高雄中學</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="stats-section" class="card mb-4">
+                <div id="stats-section" class="card mb-4 gpu-accelerated">
                     <div class="card-header info-gradient-header">
                         <h3 class="mb-0"><i class="bi bi-bar-chart me-2"></i>統計資訊</h3>
                     </div>
@@ -496,34 +531,54 @@
             <div class="card-header warning-gradient-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h3 class="mb-0"><i class="bi bi-list-stars me-2"></i>最新分享資訊</h3>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light dropdown-toggle" id="sort-dropdown" data-bs-toggle="dropdown">
-                            <i class="bi bi-sort-down me-1"></i>排序方式
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item sort-option" data-sort="newest" href="#"><i class="bi bi-clock me-2"></i>最新分享</a></li>
-                            <li><a class="dropdown-item sort-option" data-sort="highest" href="#"><i class="bi bi-arrow-down-up me-2"></i>積分高至低</a></li>
-                            <li><a class="dropdown-item sort-option" data-sort="lowest" href="#"><i class="bi bi-arrow-up-down me-2"></i>積分低至高</a></li>
-                        </ul>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light dropdown-toggle gpu-accelerated" id="sort-dropdown" data-bs-toggle="dropdown">
+                                <i class="bi bi-sort-down me-1"></i>排序方式
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item sort-option" data-sort="newest" href="#"><i class="bi bi-clock me-2"></i>最新分享</a></li>
+                                <li><a class="dropdown-item sort-option" data-sort="highest" href="#"><i class="bi bi-arrow-down-up me-2"></i>積分高至低</a></li>
+                                <li><a class="dropdown-item sort-option" data-sort="lowest" href="#"><i class="bi bi-arrow-up-down me-2"></i>積分低至高</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-header">
-                            <tr>
-                                <th>學校 / 科系</th>
-                                <th>會考成績</th>
-                                <th>總分</th>
-                                <th>年份</th>
-                                <th>說明</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-table">
-                            <!-- 分享資料會顯示在這裡 -->
-                        </tbody>
-                    </table>
+            <div class="card-body">
+                <div id="results-container">
+                    <!-- 分享資料會顯示在這裡 -->
+                </div>
+                
+                <!-- 分頁導航保持不變 -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
+                    <div class="text-muted small">
+                        顯示第 <span id="currentPage">1</span> 頁，共 <span id="totalPages">1</span> 頁
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm">
+                            <li class="page-item disabled" id="prevPage">
+                                <a class="page-link" href="#" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#" data-page="1">1</a></li>
+                            <li class="page-item disabled" id="nextPage">
+                                <a class="page-link" href="#" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle gpu-accelerated" type="button" id="dropdownPageSize" data-bs-toggle="dropdown" aria-expanded="false">
+                            每頁 <span id="currentPageSize">10</span> 筆
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownPageSize">
+                            <li><a class="dropdown-item page-size-option" href="#" data-size="10">10 筆</a></li>
+                            <li><a class="dropdown-item page-size-option" href="#" data-size="20">20 筆</a></li>
+                            <li><a class="dropdown-item page-size-option" href="#" data-size="50">50 筆</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -531,7 +586,7 @@
         <footer class="text-center text-muted mb-3">
             <p><i class="bi bi-heart-fill me-1 text-danger"></i> 2025 高中錄取分數分享平台 | 本平台僅供參考，錄取標準依各高中公告為準</p>
             <p class="mb-0">
-                <button class="btn btn-sm btn-outline-primary animated-btn help-btn">
+                <button class="btn btn-sm btn-outline-primary animated-btn help-btn gpu-accelerated">
                     <i class="bi bi-info-circle me-1"></i>使用說明
                 </button>
             </p>
@@ -796,16 +851,183 @@
         </div>
     </div>
 
+    <!-- Calculator Modal -->
+    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-labelledby="calculatorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header gradient-card-header">
+                    <h5 class="modal-title text-white" id="calculatorModalLabel"><i class="bi bi-calculator me-2"></i>會考積分計算器</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">會考成績</label>
+                        <div class="row g-2">
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">國文</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="chinese">
+                                    <option value="7">A++</option>
+                                    <option value="6">A+</option>
+                                    <option value="5">A</option>
+                                    <option value="4">B++</option>
+                                    <option value="3">B+</option>
+                                    <option value="2">B</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">英文</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="english">
+                                    <option value="7">A++</option>
+                                    <option value="6">A+</option>
+                                    <option value="5">A</option>
+                                    <option value="4">B++</option>
+                                    <option value="3">B+</option>
+                                    <option value="2">B</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">數學</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="math">
+                                    <option value="7">A++</option>
+                                    <option value="6">A+</option>
+                                    <option value="5">A</option>
+                                    <option value="4">B++</option>
+                                    <option value="3">B+</option>
+                                    <option value="2">B</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">自然</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="science">
+                                    <option value="7">A++</option>
+                                    <option value="6">A+</option>
+                                    <option value="5">A</option>
+                                    <option value="4">B++</option>
+                                    <option value="3">B+</option>
+                                    <option value="2">B</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">社會</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="social">
+                                    <option value="7">A++</option>
+                                    <option value="6">A+</option>
+                                    <option value="5">A</option>
+                                    <option value="4">B++</option>
+                                    <option value="3">B+</option>
+                                    <option value="2">B</option>
+                                    <option value="1">C</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 mb-2">
+                                <label class="small">作文</label>
+                                <select class="form-select form-select-sm calc-subject" data-subject="composition">
+                                    <option value="6">6級</option>
+                                    <option value="5">5級</option>
+                                    <option value="4">4級</option>
+                                    <option value="3">3級</option>
+                                    <option value="2">2級</option>
+                                    <option value="1">1級</option>
+                                    <option value="0">0級</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h5 class="mb-0" id="calc-total-points">0</h5>
+                                    <small class="text-muted">總積點</small>
+                                </div>
+                                <div class="col-6">
+                                    <h5 class="mb-0" id="calc-total-score">0</h5>
+                                    <small class="text-muted">總積分</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <p class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> 此計算器使用一般免試入學積分計算方式，各校實際計算方式可能有差異，僅供參考。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Data Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header success-gradient-header">
+                    <h5 class="modal-title text-white" id="exportModalLabel"><i class="bi bi-download me-2"></i>匯出資料</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>選擇您要匯出的資料格式：</p>
+                    <div class="d-grid gap-2">
+                        <button id="export-csv" class="btn btn-outline-primary"><i class="bi bi-filetype-csv me-2"></i>CSV 格式</button>
+                        <button id="export-json" class="btn btn-outline-primary"><i class="bi bi-filetype-json me-2"></i>JSON 格式</button>
+                        <button id="export-print" class="btn btn-outline-primary"><i class="bi bi-printer me-2"></i>列印當前結果</button>
+                    </div>
+                    <div class="mt-3">
+                        <p class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> 僅匯出當前篩選後的結果資料。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal -->
+    <div class="modal fade" id="favoritesModal" tabindex="-1" aria-labelledby="favoritesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header info-gradient-header">
+                    <h5 class="modal-title text-white" id="favoritesModalLabel"><i class="bi bi-bookmark-heart me-2"></i>我的收藏</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="favorites-list" class="list-group">
+                        <!-- Favorites will be populated here -->
+                    </div>
+                    <div id="no-favorites" class="text-center py-4">
+                        <i class="bi bi-bookmark text-muted fs-1"></i>
+                        <p class="mt-3 text-muted">您尚未收藏任何記錄</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="clear-favorites" class="btn btn-outline-danger me-auto"><i class="bi bi-trash me-1"></i>清空收藏</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" style="display: none;" class="glass-effect">
+        <div class="loading-animation gpu-accelerated">
+            <div class="loading-circles">
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+            </div>
+            <div class="loading-text">資料載入中</div>
+            <div class="loading-progress">
+                <div class="progress-bar shimmer-effect"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
     <script src="script.js"></script>
-    
-    <!-- 加載動畫 -->
-    <div id="loading-overlay" style="display: none;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
     
     <script>
       // 確保Apps Script已正確設置為網路應用程式
@@ -819,11 +1041,33 @@
         document.body.classList.add('page-loaded');
       });
       
-      // 給頁面元素添加動畫類
+      // 給頁面元素添加動畫類並使用GPU加速
       document.querySelectorAll('.card, .school-tag, .btn, header h1, header p').forEach((element, index) => {
+        element.classList.add('gpu-accelerated');
         setTimeout(() => {
           element.classList.add('in-view');
         }, index * 100 + 200);
+      });
+      
+      // 優化圖片載入
+      document.querySelectorAll('img').forEach(img => {
+        img.setAttribute('loading', 'lazy');
+      });
+      
+      // 應用平滑滾動到所有內部連結
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          if(this.getAttribute('href') !== '#') {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if(target) {
+              window.scrollTo({
+                top: target.offsetTop - 80,
+                behavior: 'smooth'
+              });
+            }
+          }
+        });
       });
     </script>
 </body>
