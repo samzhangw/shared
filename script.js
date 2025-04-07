@@ -1656,15 +1656,19 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
         
         const csvRows = [];
-        // Add header row
-        csvRows.push(headers.join(','));
+        // Add header row with BOM for proper UTF-8 encoding in Excel
+        csvRows.push('\uFEFF' + headers.join(','));
+        
+        // Add watermark row
+        csvRows.push('"高中錄取分數分享平台 - 匯出於 ' + new Date().toLocaleString() + ' - 僅供參考使用"');
+        csvRows.push(''); // Empty row after watermark
         
         // Add data rows
         displayedEntries.forEach(entry => {
             const row = [
                 entry.year,
-                '"' + entry.school + '"',
-                '"' + (entry.department || '普通班') + '"',
+                '"' + entry.school.replace(/"/g, '""') + '"',
+                '"' + (entry.department || '普通班').replace(/"/g, '""') + '"',
                 entry.region,
                 entry.scores.chinese,
                 entry.scores.english,
@@ -1674,7 +1678,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 entry.composition,
                 entry.total,
                 entry.totalPoints,
-                '"' + (entry.comment || '') + '"'
+                '"' + (entry.comment || '').replace(/"/g, '""') + '"'
             ];
             csvRows.push(row.join(','));
         });
@@ -1698,7 +1702,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function exportToJSON() {
-        const data = JSON.stringify(displayedEntries, null, 2);
+        // Add metadata with watermark information
+        const exportData = {
+            metadata: {
+                exportSource: "高中錄取分數分享平台",
+                exportDate: new Date().toLocaleString(),
+                note: "本資料僅供參考，錄取標準依各高中公告為準"
+            },
+            data: displayedEntries
+        };
+        
+        const data = JSON.stringify(exportData, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
@@ -1728,65 +1742,110 @@ document.addEventListener('DOMContentLoaded', function() {
             <head>
                 <title>高中錄取分數列表</title>
                 <style>
-                    body { font-family: Arial, sans-serif; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
-                    .header { text-align: center; margin-bottom: 20px; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+                    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; position: relative; }
+                    h1 { color: #0d6efd; text-align: center; margin-bottom: 10px; }
+                    p { text-align: center; color: #6c757d; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                    th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+                    th { background-color: #f8f9fa; color: #212529; font-weight: 600; }
+                    tr:nth-child(even) { background-color: #f2f2f2; }
+                    tr:hover { background-color: #e9ecef; }
+                    .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #dee2e6; }
+                    .footer { text-align: center; margin-top: 30px; padding-top: 20px; font-size: 12px; color: #6c757d; border-top: 1px solid #dee2e6; }
+                    .school-group { margin-bottom: 30px; }
+                    .school-title { background-color: #e7f1ff; padding: 10px; font-weight: bold; color: #0d6efd; border-left: 4px solid #0d6efd; }
+                    .score-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #f8f9fa; font-size: 12px; }
+                    .watermark {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%) rotate(-45deg);
+                        font-size: 80px;
+                        color: rgba(200, 200, 200, 0.2);
+                        pointer-events: none;
+                        z-index: 1000;
+                        white-space: nowrap;
+                    }
+                    @media print {
+                        table { page-break-inside: auto; }
+                        tr { page-break-inside: avoid; page-break-after: auto; }
+                        thead { display: table-header-group; }
+                        .school-group { page-break-inside: avoid; }
+                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    }
                 </style>
             </head>
             <body>
+                <div class="watermark">高中錄取分數分享平台 - 僅供參考</div>
                 <div class="header">
                     <h1>高中錄取分數列表</h1>
                     <p>匯出日期：${new Date().toLocaleDateString()}</p>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>年份</th>
-                            <th>學校</th>
-                            <th>科系/班別</th>
-                            <th>區域</th>
-                            <th>國文</th>
-                            <th>英文</th>
-                            <th>數學</th>
-                            <th>自然</th>
-                            <th>社會</th>
-                            <th>作文</th>
-                            <th>總積分</th>
-                            <th>總積點</th>
-                            <th>備註</th>
-                        </tr>
-                    </thead>
-                    <tbody>
         `;
         
+        // Group entries by school for better organization
+        let schoolGroups = {};
         displayedEntries.forEach(entry => {
+            if (!schoolGroups[entry.school]) {
+                schoolGroups[entry.school] = [];
+            }
+            schoolGroups[entry.school].push(entry);
+        });
+        
+        // Generate tables for each school
+        Object.keys(schoolGroups).forEach(school => {
             tableHTML += `
-                <tr>
-                    <td>${entry.year}年</td>
-                    <td>${entry.school}</td>
-                    <td>${entry.department || '普通班'}</td>
-                    <td>${entry.region}</td>
-                    <td>${entry.scores.chinese}</td>
-                    <td>${entry.scores.english}</td>
-                    <td>${entry.scores.math}</td>
-                    <td>${entry.scores.science}</td>
-                    <td>${entry.scores.social}</td>
-                    <td>${entry.composition}級</td>
-                    <td>${entry.total || '未提供'}</td>
-                    <td>${entry.totalPoints || '未提供'}</td>
-                    <td>${entry.comment || ''}</td>
-                </tr>
+                <div class="school-group">
+                    <div class="school-title">${school} (${schoolGroups[school].length}筆資料)</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>年份</th>
+                                <th>科系/班別</th>
+                                <th>國文</th>
+                                <th>英文</th>
+                                <th>數學</th>
+                                <th>自然</th>
+                                <th>社會</th>
+                                <th>作文</th>
+                                <th>總積分</th>
+                                <th>總積點</th>
+                                <th>備註</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            schoolGroups[school].forEach(entry => {
+                tableHTML += `
+                    <tr>
+                        <td>${entry.year}年</td>
+                        <td>${entry.department || '普通班'}</td>
+                        <td><span class="score-badge">${entry.scores.chinese}</span></td>
+                        <td><span class="score-badge">${entry.scores.english}</span></td>
+                        <td><span class="score-badge">${entry.scores.math}</span></td>
+                        <td><span class="score-badge">${entry.scores.science}</span></td>
+                        <td><span class="score-badge">${entry.scores.social}</span></td>
+                        <td><span class="score-badge">${entry.composition}級</span></td>
+                        <td><strong>${entry.total || '未提供'}</strong></td>
+                        <td>${entry.totalPoints || '未提供'}</td>
+                        <td>${entry.comment || ''}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
             `;
         });
         
         tableHTML += `
-                    </tbody>
-                </table>
                 <div class="footer">
-                    <p>本資料來自高中錄取分數分享平台，僅供參考。</p>
+                    <p>本資料來自高中錄取分數分享平台，僅供參考使用</p>
+                    <p>錄取標準依各高中公告為準</p>
                 </div>
                 <script>
                     window.onload = function() { window.print(); }
@@ -1800,5 +1859,9 @@ document.addEventListener('DOMContentLoaded', function() {
         printWindow.document.close();
         
         showApiMessage('success', '已開啟列印視窗');
+    }
+    
+    function setRandomBackgroundPattern() {
+        console.log("Background pattern initialized");
     }
 });
